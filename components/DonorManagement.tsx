@@ -3,17 +3,16 @@ import { Transaction, TransactionType } from '../types';
 import { useDonorManagement, DonorProfile } from '../hooks/useDonorManagement';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import DonorReceipt from './DonorReceipt';
-
 interface DonorManagementProps {
   transactions: Transaction[];
 }
 
 const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
   const { donorProfiles, analytics } = useDonorManagement(transactions);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedDonor, setSelectedDonor] = useState<DonorProfile | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   // Filter donors based on search
@@ -24,6 +23,7 @@ const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
   const DonorCard: React.FC<{ donor: DonorProfile }> = ({ donor }) => (
     <div className="bg-white p-4 rounded-lg shadow-md border border-slate-200 hover:shadow-lg transition-shadow cursor-pointer"
          onClick={() => {
+           console.log('Donor card clicked:', donor.name);
            setSelectedDonor(donor);
            setShowDetails(true);
          }}>
@@ -84,6 +84,72 @@ const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
       (t.donorName || 'Anonymous') === donor.name
     );
 
+    const handleSendThankYou = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      console.log('Send Thank You clicked for donor:', donor);
+      console.log('Donor contact:', donor.contact);
+
+      const email = donor.contact?.includes('@') ? donor.contact : '';
+      const phone = !email && donor.contact ? `tel:${donor.contact}` : '';
+
+      const subject = `Thank You for Your Generous Donation`;
+      const body = `Dear ${donor.name},
+
+We want to extend our heartfelt thanks for your recent generous donation of ${formatCurrency(donorTransactions[0]?.amount || 0)}. Your support helps us continue our mission and serve our community.
+
+Thank you for being a valued member of our church family!
+
+Blessings,
+Greater Works City Church`;
+
+      try {
+        if (email) {
+          const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          console.log('Opening email client with:', mailtoLink);
+          window.open(mailtoLink, '_blank');
+        } else if (phone) {
+          console.log('Opening phone dialer with:', phone);
+          window.open(phone, '_blank');
+        } else {
+          console.log('No contact info, showing alert');
+          alert(`Thank you message for ${donor.name}:\n\n${body}`);
+        }
+      } catch (error) {
+        console.error('Error in handleSendThankYou:', error);
+        alert(`Error sending thank you: ${error}`);
+      }
+    };
+
+    const handleGenerateTaxReceipt = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      console.log('Generate Tax Receipt clicked for donor:', donor.name);
+
+      try {
+        const currentYear = new Date().getFullYear();
+        const totalDonations = donor.totalGiven;
+        const taxReceiptMessage = `Tax Receipt for ${donor.name}\n\nYear: ${currentYear}\nTotal Donations: ${formatCurrency(totalDonations)}\n\nThis receipt can be used for tax deduction purposes.\n\nGreater Works City Church`;
+
+        alert(taxReceiptMessage);
+        console.log('Tax receipt generated for:', donor.name, 'Amount:', totalDonations);
+      } catch (error) {
+        console.error('Error in handleGenerateTaxReceipt:', error);
+        alert(`Error generating tax receipt: ${error}`);
+      }
+    };
+    const handleViewFullHistory = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      console.log('View Full History clicked for donor:', donor.name);
+      // For now, show all transactions in console and alert
+      console.log('All donor transactions:', donorTransactions);
+      alert(`Full donation history for ${donor.name} has been logged to console. Total transactions: ${donorTransactions.length}`);
+    };
+
     const handleGenerateReceipt = (transaction: Transaction) => {
       setSelectedTransaction(transaction);
       setShowReceipt(true);
@@ -132,14 +198,38 @@ const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
           <div className="bg-purple-50 p-4 rounded-lg">
             <h4 className="font-semibold text-purple-800">Actions</h4>
             <div className="mt-2 space-y-2">
-              <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 text-sm">
+              <button
+                onClick={handleSendThankYou}
+                disabled={!donor.name}
+                className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 text-sm disabled:bg-purple-300 disabled:cursor-not-allowed"
+              >
                 Send Thank You
               </button>
-              <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-sm">
+              <button
+                onClick={handleGenerateTaxReceipt}
+                disabled={!donor.name}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-sm disabled:bg-blue-300 disabled:cursor-not-allowed"
+              >
                 Generate Tax Receipt
               </button>
-              <button className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 text-sm">
+              <button
+                onClick={handleViewFullHistory}
+                disabled={!donor.name}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 text-sm disabled:bg-green-300 disabled:cursor-not-allowed"
+              >
                 View Full History
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Donor data:', JSON.stringify(donor, null, 2));
+                  console.log('Donor transactions:', donorTransactions);
+                  alert(`Donor data logged to console. Check console for details.`);
+                }}
+                className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 text-sm"
+              >
+                Debug: Log Data
               </button>
             </div>
           </div>
@@ -250,6 +340,12 @@ const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
             <option>One-time Donors</option>
             <option>Active This Year</option>
           </select>
+          <button
+            onClick={() => console.log('Donor profiles:', donorProfiles)}
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            Debug: Log Donors
+          </button>
         </div>
       </div>
 
@@ -305,7 +401,7 @@ const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
               <svg className="w-12 h-12 mx-auto text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <p className="text-slate-600">
+              <p className="text-slate-600 mb-4">
                 {searchTerm ? 'No donors found matching your search.' : 'No donor data available yet.'}
               </p>
               {searchTerm && (
@@ -315,6 +411,30 @@ const DonorManagement: React.FC<DonorManagementProps> = ({ transactions }) => {
                 >
                   Clear search
                 </button>
+              )}
+              {!searchTerm && (
+                <div className="mt-4">
+                  <p className="text-sm text-slate-500 mb-3">
+                    To see donor profiles, create income transactions with donor names:
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <button
+                      onClick={() => window.location.href = '/#/transactions'}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+                    >
+                      Add Income Transaction
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log('Current transactions:', transactions.filter(t => t.type === 'Income'));
+                        console.log('Donor profiles:', donorProfiles);
+                      }}
+                      className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm"
+                    >
+                      Debug: Check Data
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           )}
