@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function to get user role from user document
+    function getUserRole() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper function to check if user has admin role
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+
+    // Helper function to check if user has editor role or higher
+    function isEditor() {
+      let role = getUserRole();
+      return role == 'admin' || role == 'editor';
+    }
+
+    // Helper function to check if user has viewer role or higher
+    function isViewer() {
+      let role = getUserRole();
+      return role == 'admin' || role == 'editor' || role == 'viewer';
+    }
+
+    // Validate transaction data
+    function isValidTransaction() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['date', 'description', 'category', 'amount', 'type']) &&
+        data.date is string &&
+        data.description is string &&
+        data.description.size() <= 200 &&
+        data.category is string &&
+        data.category.size() <= 50 &&
+        data.amount is number &&
+        data.amount > 0 &&
+        data.amount <= 999999.99 &&
+        data.type in ['Income', 'Expense'];
+    }
+
+    // Validate member data
+    function isValidMember() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'dateJoined']) &&
+        data.name is string &&
+        data.name.size() <= 100 &&
+        data.dateJoined is string;
+    }
+
+    // Users collection - user profiles and role management
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+
+      // Users can update their own profile (but not role)
+      allow update: if isOwner(userId) &&
+        request.resource.data.diff(resource.data).unchangedKeys().hasAll(['role']);
+
+      // Only admins can create/update user roles
+      allow create: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.role is string;
+
+      // Subcollections
+      match /{document=**} {
+        // Transactions subcollection
+        match /transactions/{transactionId} {
+          // Users can read their own transactions
+          allow read: if isOwner(userId) && isViewer();
+
+          // Users can create transactions if they have editor permissions
+          allow create: if isOwner(userId) && isEditor() && isValidTransaction();
+
+          // Users can update/delete their own transactions if they have editor permissions
+          allow update: if isOwner(userId) && isEditor() && isValidTransaction();
+          allow delete: if isOwner(userId) && isEditor();
+        }
+
+        // Members subcollection
+        match /members/{memberId} {
+          // Users can read members if they have viewer permissions
+          allow read: if isOwner(userId) && isViewer();
+
+          // Only admins and editors can manage members
+          allow create: if isOwner(userId) && isEditor() && isValidMember();
+          allow update: if isOwner(userId) && isEditor() && isValidMember();
+          allow delete: if isOwner(userId) && isEditor();
+        }
+
+        // Budgets subcollection
+        match /budgets/{budgetId} {
+          // Users can read budgets if they have viewer permissions
+          allow read: if isOwner(userId) && isViewer();
+
+          // Only admins and editors can manage budgets
+          allow write: if isOwner(userId) && isEditor();
+        }
+
+        // Categories subcollection
+        match /categories/{categoryId} {
+          // Users can read categories if they have viewer permissions
+          allow read: if isOwner(userId) && isViewer();
+
+          // Only admins and editors can manage categories
+          allow write: if isOwner(userId) && isEditor();
+        }
+      }
+    }
+
+    // Global rules for additional security
+    match /{document=**} {
+      // Deny all access by default for better security
+      allow read, write: if false;
+    }
+  }
+}

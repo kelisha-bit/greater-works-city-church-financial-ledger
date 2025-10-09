@@ -1,0 +1,90 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to get user's ID
+    function getUserId() {
+      return request.auth.uid;
+    }
+
+    // Helper function to check if user has editor role or higher
+    function isEditor() {
+      return isAuthenticated() &&
+        firestore.exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor'];
+    }
+
+    // Helper function to validate file type for receipts
+    function isValidReceiptFile() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*');
+    }
+
+    // Helper function to validate file type for profile pictures
+    function isValidProfileImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Helper function to check file size (max 10MB for receipts, 2MB for profile images)
+    function isValidFileSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB for receipts
+    }
+
+    function isValidProfileImageSize() {
+      return request.resource.size < 2 * 1024 * 1024; // 2MB for profile images
+    }
+
+    // Users can only access files in their own folder
+    match /users/{userId}/{allPaths=**} {
+      // Basic ownership check
+      allow read, write, delete: if isAuthenticated() && userId == getUserId();
+    }
+
+    // Receipts folder - more restrictive rules
+    match /users/{userId}/receipts/{fileName} {
+      // Users can read their own receipt files if they have viewer permissions
+      allow read: if isAuthenticated() && userId == getUserId();
+
+      // Users can upload receipts if they have editor permissions
+      allow write: if isAuthenticated() &&
+        userId == getUserId() &&
+        isEditor() &&
+        isValidReceiptFile() &&
+        isValidFileSize();
+
+      // Users can delete their own receipt files if they have editor permissions
+      allow delete: if isAuthenticated() && userId == getUserId() && isEditor();
+    }
+
+    // Profile pictures folder - image files only
+    match /users/{userId}/profile/{fileName} {
+      // Users can read their own profile images if authenticated
+      allow read: if isAuthenticated() && userId == getUserId();
+
+      // Users can upload profile images if authenticated (all users can update their own profile)
+      allow write: if isAuthenticated() &&
+        userId == getUserId() &&
+        isValidProfileImage() &&
+        isValidProfileImageSize();
+
+      // Users can delete their own profile images if authenticated
+      allow delete: if isAuthenticated() && userId == getUserId();
+    }
+
+    // Additional security: prevent access to other users' files
+    match /users/{userId}/{allPaths=**} {
+      allow read, write, delete: if false;
+    }
+
+    // Global deny rule for any other paths
+    match /{allPaths=**} {
+      allow read, write, delete: if false;
+    }
+  }
+}
