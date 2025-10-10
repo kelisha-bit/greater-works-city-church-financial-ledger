@@ -40,8 +40,48 @@ export interface Member {
   phone?: string;
   address?: string;
   dateJoined: string; // ISO string
-  role?: string; // e.g., Member, Elder, Pastor
-  emergencyContact?: string;
+
+  // Personal Information
+  dateOfBirth?: string; // ISO string
+  gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say';
+  maritalStatus?: 'Single' | 'Married' | 'Divorced' | 'Widowed' | 'Separated';
+
+  // Church Information
+  role?: string; // e.g., Member, Elder, Pastor, Deacon, etc.
+  membershipStatus?: 'Active' | 'Inactive' | 'Pending' | 'Former' | 'Visitor';
+  baptismDate?: string; // ISO string
+  ministries?: string[]; // Array of ministry involvement
+  smallGroup?: string;
+  volunteerRoles?: string[];
+
+  // Family Information
+  familyMembers?: {
+    spouse?: string;
+    children?: Array<{
+      name: string;
+      age?: number;
+      relationship?: string;
+    }>;
+  };
+
+  // Contact & Emergency Information
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phone: string;
+    email?: string;
+  };
+
+  // Professional & Skills
+  occupation?: string;
+  skills?: string[]; // For volunteer matching
+
+  // Additional Information
+  previousChurch?: string;
+  allergies?: string;
+  notes?: string;
+
+  // Media
   profilePicture?: string; // base64 data URL
 }
 

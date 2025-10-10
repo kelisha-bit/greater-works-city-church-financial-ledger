@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import Summary from './components/Summary';
 import AddTransactionForm from './components/AddTransactionForm';
+import SplashScreen from './components/SplashScreen';
 import AddDonationForm from './components/AddDonationForm';
 import AddMemberForm from './components/AddMemberForm';
 import TransactionList from './components/TransactionList';
@@ -41,11 +42,21 @@ const MainApp: React.FC = () => {
   const { expenseCategories, addExpenseCategory } = useCategories();
   const { members, addMember, deleteMember, editMember } = useMembers();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
   const currentMonthBudgets = getBudgetsForMonth(currentMonth);
+
+  // Handle splash screen timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Show splash screen for 3 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleViewProfile = (memberId: string) => {
     setSelectedMemberId(memberId);
@@ -126,14 +137,28 @@ const MainApp: React.FC = () => {
         return <DonorManagement transactions={transactions} />;
       case 'memberProfile':
         const selectedMember = members.find(m => m.id === selectedMemberId);
-        return selectedMember ? (
+        if (!selectedMember) {
+          return (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <h2 className="text-2xl font-bold text-red-600 mb-4">Member Not Found</h2>
+              <p className="text-slate-600 mb-6">The requested member could not be found.</p>
+              <button
+                onClick={handleBackToMembers}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Back to Members
+              </button>
+            </div>
+          );
+        }
+        return (
           <MemberProfile
             member={selectedMember}
             transactions={transactions}
             onBack={handleBackToMembers}
             onEditMember={editMember}
           />
-        ) : null;
+        );
       case 'dashboard':
       default:
         return (
@@ -143,6 +168,10 @@ const MainApp: React.FC = () => {
           />
         );
     }
+  }
+
+  if (isLoading) {
+    return <SplashScreen onComplete={() => setIsLoading(false)} />;
   }
 
   return (
