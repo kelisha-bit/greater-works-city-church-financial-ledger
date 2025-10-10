@@ -11,66 +11,74 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onAddMember }) => {
     email: '',
     phone: '',
     address: '',
-    dateJoined: new Date().toISOString().split('T')[0],
-    dateOfBirth: '',
-    gender: '',
-    maritalStatus: '',
+    dateJoined: new Date().toISOString().split('T')[0], // yyyy-mm-dd
     role: '',
-    membershipStatus: 'Active',
-    baptismDate: '',
-    ministries: [] as string[],
-    smallGroup: '',
-    volunteerRoles: [] as string[],
-    familyMembers: {
-      spouse: '',
-      children: [] as Array<{ name: string; age?: number; relationship?: string }>
-    },
-    emergencyContact: {
-      name: '',
-      relationship: '',
-      phone: '',
-      email: ''
-    },
-    occupation: '',
-    skills: [] as string[],
-    previousChurch: '',
-    allergies: '',
-    notes: '',
+    emergencyContact: '',
     profilePicture: '',
+    // New fields
+    birthday: '',
+    maritalStatus: '',
+    householdName: '',
+    familyLinks: '', // csv
+    membershipStatus: '',
+    baptismDate: '',
+    joinDate: '',
+    ministries: '', // csv
+    departments: '', // csv
+    notes: '',
+    address2: '',
+    city: '',
+    region: '',
+    postalCode: '',
+    // Personal additions
+    gender: '',
+    idType: '',
+    idNumber: '',
+    occupation: '',
+    employer: '',
+    educationLevel: '',
+    // Family additions
+    spouseName: '',
+    numberOfChildren: '', // keep as string in form, convert to number on submit
+    childrenNamesAges: '', // csv
+    // Church additions
+    previousChurch: '',
+    membershipClassCompleted: false,
+    membershipClassDate: '',
+    spiritualGifts: '', // csv
+    confirmationDate: '',
+    communionDate: '',
+    // Ministry/Groups
+    serviceTeamRole: '',
+    // Contact & Consent
+    preferredContactMethod: '',
+    whatsappNumber: '',
+    optInEmail: false,
+    optInSMS: false,
+    optInWhatsApp: false,
+    mediaConsent: false,
+    // Address extras
+    country: '',
+    landmark: '',
+    // Emergency/Health
+    emergencyContactName: '',
+    emergencyContactRelationship: '',
+    emergencyContactPhone: '',
+    medicalConditions: '',
+    accessibilityNeeds: '',
+    // Stewardship
+    titheNumber: '',
+    givingId: '',
+    // Other
+    prayerRequests: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-
-    if (name.includes('.')) {
-      // Handle nested object properties
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev] as any,
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleArrayFieldChange = (field: 'ministries' | 'volunteerRoles' | 'skills', value: string) => {
-    if (value && !formData[field].includes(value)) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: [...prev[field], value]
-      }));
-    }
-  };
-
-  const removeArrayItem = (field: 'ministries' | 'volunteerRoles' | 'skills', item: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter(i => i !== item)
-    }));
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.checked });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,348 +92,325 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onAddMember }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onAddMember(formData);
-    // Reset form
+    const toArray = (csv: string): string[] => csv.split(',').map(s => s.trim()).filter(Boolean);
+    const payload: Omit<Member, 'id' | 'dateJoined'> & { dateJoined: string } = {
+      // required and basic
+      name: formData.name,
+      dateJoined: formData.dateJoined,
+      // simple maps
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
+      address: formData.address || undefined,
+      role: formData.role || undefined,
+      emergencyContact: formData.emergencyContact || undefined,
+      profilePicture: formData.profilePicture || undefined,
+      birthday: formData.birthday || undefined,
+      maritalStatus: (formData.maritalStatus as Member['maritalStatus']) || undefined,
+      householdName: formData.householdName || undefined,
+      familyLinks: formData.familyLinks ? toArray(formData.familyLinks) : undefined,
+      membershipStatus: (formData.membershipStatus as Member['membershipStatus']) || undefined,
+      baptismDate: formData.baptismDate || undefined,
+      joinDate: formData.joinDate || undefined,
+      ministries: formData.ministries ? toArray(formData.ministries) : undefined,
+      departments: formData.departments ? toArray(formData.departments) : undefined,
+      notes: formData.notes || undefined,
+      address2: formData.address2 || undefined,
+      city: formData.city || undefined,
+      region: formData.region || undefined,
+      postalCode: formData.postalCode || undefined,
+      // new fields
+      gender: (formData.gender as Member['gender']) || undefined,
+      idType: formData.idType || undefined,
+      idNumber: formData.idNumber || undefined,
+      occupation: formData.occupation || undefined,
+      employer: formData.employer || undefined,
+      educationLevel: formData.educationLevel || undefined,
+      spouseName: formData.spouseName || undefined,
+      numberOfChildren: formData.numberOfChildren ? parseInt(formData.numberOfChildren, 10) : undefined,
+      childrenNamesAges: formData.childrenNamesAges ? toArray(formData.childrenNamesAges) : undefined,
+      previousChurch: formData.previousChurch || undefined,
+      membershipClassCompleted: formData.membershipClassCompleted || undefined,
+      membershipClassDate: formData.membershipClassDate || undefined,
+      spiritualGifts: formData.spiritualGifts ? toArray(formData.spiritualGifts) : undefined,
+      confirmationDate: formData.confirmationDate || undefined,
+      communionDate: formData.communionDate || undefined,
+      serviceTeamRole: formData.serviceTeamRole || undefined,
+      preferredContactMethod: (formData.preferredContactMethod as Member['preferredContactMethod']) || undefined,
+      whatsappNumber: formData.whatsappNumber || undefined,
+      optInEmail: formData.optInEmail || undefined,
+      optInSMS: formData.optInSMS || undefined,
+      optInWhatsApp: formData.optInWhatsApp || undefined,
+      mediaConsent: formData.mediaConsent || undefined,
+      country: formData.country || undefined,
+      landmark: formData.landmark || undefined,
+      emergencyContactName: formData.emergencyContactName || undefined,
+      emergencyContactRelationship: formData.emergencyContactRelationship || undefined,
+      emergencyContactPhone: formData.emergencyContactPhone || undefined,
+      medicalConditions: formData.medicalConditions || undefined,
+      accessibilityNeeds: formData.accessibilityNeeds || undefined,
+      titheNumber: formData.titheNumber || undefined,
+      givingId: formData.givingId || undefined,
+      prayerRequests: formData.prayerRequests || undefined,
+    };
+
+    await onAddMember(payload);
     setFormData({
       name: '',
       email: '',
       phone: '',
       address: '',
       dateJoined: new Date().toISOString().split('T')[0],
-      dateOfBirth: '',
-      gender: '',
-      maritalStatus: '',
       role: '',
-      membershipStatus: 'Active',
-      baptismDate: '',
-      ministries: [],
-      smallGroup: '',
-      volunteerRoles: [],
-      familyMembers: {
-        spouse: '',
-        children: []
-      },
-      emergencyContact: {
-        name: '',
-        relationship: '',
-        phone: '',
-        email: ''
-      },
-      occupation: '',
-      skills: [],
-      previousChurch: '',
-      allergies: '',
-      notes: '',
+      emergencyContact: '',
       profilePicture: '',
+      birthday: '',
+      maritalStatus: '',
+      householdName: '',
+      familyLinks: '',
+      membershipStatus: '',
+      baptismDate: '',
+      joinDate: '',
+      ministries: '',
+      departments: '',
+      notes: '',
+      address2: '',
+      city: '',
+      region: '',
+      postalCode: '',
+      gender: '',
+      idType: '',
+      idNumber: '',
+      occupation: '',
+      employer: '',
+      educationLevel: '',
+      spouseName: '',
+      numberOfChildren: '',
+      childrenNamesAges: '',
+      previousChurch: '',
+      membershipClassCompleted: false,
+      membershipClassDate: '',
+      spiritualGifts: '',
+      confirmationDate: '',
+      communionDate: '',
+      serviceTeamRole: '',
+      preferredContactMethod: '',
+      whatsappNumber: '',
+      optInEmail: false,
+      optInSMS: false,
+      optInWhatsApp: false,
+      mediaConsent: false,
+      country: '',
+      landmark: '',
+      emergencyContactName: '',
+      emergencyContactRelationship: '',
+      emergencyContactPhone: '',
+      medicalConditions: '',
+      accessibilityNeeds: '',
+      titheNumber: '',
+      givingId: '',
+      prayerRequests: '',
     });
   };
 
-  const ministryOptions = [
-    'Worship', 'Children\'s Ministry', 'Youth Ministry', 'Young Adults',
-    'Senior Adults', 'Missions', 'Evangelism', 'Hospitality',
-    'Media/Tech', 'Administration', 'Finance', 'Building & Grounds'
-  ];
-
-  const skillOptions = [
-    'Teaching', 'Music', 'Leadership', 'Organization', 'Technical',
-    'Creative Arts', 'Counseling', 'Hospitality', 'Finance',
-    'Construction', 'Cooking', 'Photography', 'Writing'
-  ];
-
-  const volunteerRoleOptions = [
-    'Sunday School Teacher', 'Youth Leader', 'Music Ministry',
-    'Greeter/Usher', 'Sound/Tech Team', 'Children\'s Ministry Helper',
-    'Kitchen Ministry', 'Building Maintenance', 'Office Help',
-    'Event Planning', 'Transportation', 'Prayer Ministry'
-  ];
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md max-h-[80vh] overflow-y-auto">
-      <h3 className="text-xl font-bold mb-6">Add New Church Member</h3>
-      <form onSubmit={handleSubmit} className="space-y-6">
-
-        {/* Personal Information Section */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Personal Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Full Name *"
-              required
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="dateOfBirth"
-              value={formData.dateOfBirth}
-              onChange={handleChange}
-              type="date"
-              placeholder="Date of Birth"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <select
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-            <select
-              name="maritalStatus"
-              value={formData.maritalStatus}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Marital Status</option>
-              <option value="Single">Single</option>
-              <option value="Married">Married</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-              <option value="Separated">Separated</option>
-            </select>
+    <div className="bg-white p-4 rounded-lg shadow-md max-h-[85vh] overflow-y-auto">
+      <h3 className="text-base font-bold mb-3 sticky top-0 bg-white z-10 pb-2 border-b">Add New Member</h3>
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          {/* BASIC INFORMATION */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">BASIC INFORMATION</h4>
+          <input name="name" value={formData.name} onChange={handleChange} placeholder="Name" required className="w-full p-1.5 text-sm border rounded" />
+          <input name="email" value={formData.email} onChange={handleChange} type="email" placeholder="Email" className="w-full p-1.5 text-sm border rounded" />
+          <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" className="w-full p-1.5 text-sm border rounded" />
+          <input name="address" value={formData.address} onChange={handleChange} placeholder="Address Line 1" className="w-full p-1.5 text-sm border rounded" />
+          <input name="address2" value={formData.address2} onChange={handleChange} placeholder="Address Line 2" className="w-full p-1.5 text-sm border rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input name="city" value={formData.city} onChange={handleChange} placeholder="City" className="w-full p-1.5 text-sm border rounded" />
+            <input name="region" value={formData.region} onChange={handleChange} placeholder="Region" className="w-full p-1.5 text-sm border rounded" />
+            <input name="postalCode" value={formData.postalCode} onChange={handleChange} placeholder="Postal Code" className="w-full p-1.5 text-sm border rounded" />
           </div>
-        </div>
-
-        {/* Contact Information Section */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Contact Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              type="email"
-              placeholder="Email Address"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="Phone Number"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Address"
-              className="w-full md:col-span-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input name="country" value={formData.country} onChange={handleChange} placeholder="Country" className="w-full p-1.5 text-sm border rounded" />
+            <input name="landmark" value={formData.landmark} onChange={handleChange} placeholder="Landmark" className="w-full p-1.5 text-sm border rounded" />
           </div>
-        </div>
-
-        {/* Church Information Section */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Church Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              name="dateJoined"
-              value={formData.dateJoined}
-              onChange={handleChange}
-              type="date"
-              required
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <select
-              name="membershipStatus"
-              value={formData.membershipStatus}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Pending">Pending</option>
-              <option value="Former">Former</option>
-              <option value="Visitor">Visitor</option>
-            </select>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Role</option>
-              <option value="Member">Member</option>
-              <option value="Elder">Elder</option>
-              <option value="Pastor">Pastor</option>
-              <option value="Deacon">Deacon</option>
-              <option value="Youth Leader">Youth Leader</option>
-              <option value="Sunday School Teacher">Sunday School Teacher</option>
-            </select>
-            <input
-              name="baptismDate"
-              value={formData.baptismDate}
-              onChange={handleChange}
-              type="date"
-              placeholder="Baptism Date"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="smallGroup"
-              value={formData.smallGroup}
-              onChange={handleChange}
-              placeholder="Small Group"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Ministry & Volunteer Information */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Ministry & Volunteer Involvement</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ministries</label>
-              <select
-                onChange={(e) => handleArrayFieldChange('ministries', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Add Ministry</option>
-                {ministryOptions.map(ministry => (
-                  <option key={ministry} value={ministry}>{ministry}</option>
-                ))}
+          <input name="dateJoined" value={formData.dateJoined} onChange={handleChange} type="date" required className="w-full p-1.5 text-sm border rounded" />
+          <select name="role" value={formData.role} onChange={handleChange} className="w-full p-1.5 text-sm border rounded">
+            <option value="">Select Role</option>
+            <option value="Member">Member</option>
+            <option value="Elder">Elder</option>
+            <option value="Pastor">Pastor</option>
+            <option value="Deacon">Deacon</option>
+          </select>
+          
+          {/* PERSONAL INFORMATION */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">PERSONAL INFORMATION</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Gender</label>
+              <select name="gender" value={formData.gender} onChange={handleChange} className="w-full p-1.5 text-sm border rounded">
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
               </select>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.ministries.map(ministry => (
-                  <span key={ministry} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                    {ministry}
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('ministries', ministry)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Skills & Talents</label>
-              <select
-                onChange={(e) => handleArrayFieldChange('skills', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Add Skill</option>
-                {skillOptions.map(skill => (
-                  <option key={skill} value={skill}>{skill}</option>
-                ))}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">ID Type</label>
+              <input name="idType" value={formData.idType} onChange={handleChange} placeholder="Ghana Card" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">ID Number</label>
+              <input name="idNumber" value={formData.idNumber} onChange={handleChange} placeholder="GHA-XXX-XXX" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Occupation</label>
+              <input name="occupation" value={formData.occupation} onChange={handleChange} placeholder="Occupation" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Employer</label>
+              <input name="employer" value={formData.employer} onChange={handleChange} placeholder="Employer" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Education</label>
+              <input name="educationLevel" value={formData.educationLevel} onChange={handleChange} placeholder="Education Level" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Birthday</label>
+              <input name="birthday" value={formData.birthday} onChange={handleChange} type="date" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Marital Status</label>
+              <select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange} className="w-full p-1.5 text-sm border rounded">
+                <option value="">Select</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
               </select>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.skills.map(skill => (
-                  <span key={skill} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                    {skill}
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('skills', skill)}
-                      className="ml-1 text-green-600 hover:text-green-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
+            </div>
+          </div>
+          
+          {/* FAMILY INFORMATION */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">FAMILY INFORMATION</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input name="spouseName" value={formData.spouseName} onChange={handleChange} placeholder="Spouse Name" className="w-full p-1.5 text-sm border rounded" />
+            <input name="numberOfChildren" value={formData.numberOfChildren} onChange={handleChange} placeholder="No. of Children" className="w-full p-1.5 text-sm border rounded" />
+            <input name="childrenNamesAges" value={formData.childrenNamesAges} onChange={handleChange} placeholder="Children (John 10, Mary 7)" className="w-full p-1.5 text-sm border rounded" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Membership Status</label>
+              <select name="membershipStatus" value={formData.membershipStatus} onChange={handleChange} className="w-full p-1.5 text-sm border rounded">
+                <option value="">Select</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Join Date</label>
+              <input name="joinDate" value={formData.joinDate} onChange={handleChange} type="date" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Baptism Date</label>
+            <input name="baptismDate" value={formData.baptismDate} onChange={handleChange} type="date" className="w-full p-1.5 text-sm border rounded" />
+          </div>
+          
+          {/* CHURCH INFORMATION */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">CHURCH INFORMATION</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input name="previousChurch" value={formData.previousChurch} onChange={handleChange} placeholder="Previous Church" className="w-full p-1.5 text-sm border rounded" />
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Membership Class</label>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" name="membershipClassCompleted" checked={formData.membershipClassCompleted} onChange={handleCheckboxChange} className="h-4 w-4" />
+                <input name="membershipClassDate" value={formData.membershipClassDate} onChange={handleChange} type="date" className="w-full p-1.5 text-sm border rounded" />
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Emergency Contact */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Emergency Contact</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              name="emergencyContact.name"
-              value={formData.emergencyContact.name}
-              onChange={handleChange}
-              placeholder="Contact Name"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="emergencyContact.relationship"
-              value={formData.emergencyContact.relationship}
-              onChange={handleChange}
-              placeholder="Relationship"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="emergencyContact.phone"
-              value={formData.emergencyContact.phone}
-              onChange={handleChange}
-              placeholder="Contact Phone"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="emergencyContact.email"
-              value={formData.emergencyContact.email}
-              onChange={handleChange}
-              type="email"
-              placeholder="Contact Email"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Confirmation</label>
+              <input name="confirmationDate" value={formData.confirmationDate} onChange={handleChange} type="date" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Communion</label>
+              <input name="communionDate" value={formData.communionDate} onChange={handleChange} type="date" className="w-full p-1.5 text-sm border rounded" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Spiritual Gifts</label>
+              <input name="spiritualGifts" value={formData.spiritualGifts} onChange={handleChange} placeholder="Comma-separated" className="w-full p-1.5 text-sm border rounded" />
+            </div>
           </div>
-        </div>
-
-        {/* Additional Information */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Additional Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              name="occupation"
-              value={formData.occupation}
-              onChange={handleChange}
-              placeholder="Occupation"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              name="previousChurch"
-              value={formData.previousChurch}
-              onChange={handleChange}
-              placeholder="Previous Church (if any)"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <textarea
-              name="allergies"
-              value={formData.allergies}
-              onChange={handleChange}
-              placeholder="Allergies/Medical Notes"
-              rows={2}
-              className="w-full md:col-span-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Additional Notes"
-              rows={3}
-              className="w-full md:col-span-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <input name="householdName" value={formData.householdName} onChange={handleChange} placeholder="Household/Family Name" className="w-full p-1.5 text-sm border rounded" />
+          <input name="familyLinks" value={formData.familyLinks} onChange={handleChange} placeholder="Family Links (comma-separated)" className="w-full p-1.5 text-sm border rounded" />
+          <input name="ministries" value={formData.ministries} onChange={handleChange} placeholder="Ministries (comma-separated)" className="w-full p-1.5 text-sm border rounded" />
+          <input name="departments" value={formData.departments} onChange={handleChange} placeholder="Departments (Usher, Music, Media, Finance)" className="w-full p-1.5 text-sm border rounded" />
+          <input name="serviceTeamRole" value={formData.serviceTeamRole} onChange={handleChange} placeholder="Service Team Role" className="w-full p-1.5 text-sm border rounded" />
+          
+          {/* CONTACT & CONSENT */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">CONTACT & CONSENT</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Preferred Contact</label>
+              <select name="preferredContactMethod" value={formData.preferredContactMethod} onChange={handleChange} className="w-full p-1.5 text-sm border rounded">
+                <option value="">Select</option>
+                <option value="Phone">Phone</option>
+                <option value="Email">Email</option>
+                <option value="SMS">SMS</option>
+                <option value="WhatsApp">WhatsApp</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">WhatsApp Number</label>
+              <input name="whatsappNumber" value={formData.whatsappNumber} onChange={handleChange} placeholder="WhatsApp (if different)" className="w-full p-1.5 text-sm border rounded" />
+            </div>
           </div>
+          <div className="flex flex-wrap gap-3">
+            <label className="text-xs font-medium text-slate-600">Communication Opt-in:</label>
+            <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="optInEmail" checked={formData.optInEmail} onChange={handleCheckboxChange} className="h-3 w-3" /> Email</label>
+            <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="optInSMS" checked={formData.optInSMS} onChange={handleCheckboxChange} className="h-3 w-3" /> SMS</label>
+            <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="optInWhatsApp" checked={formData.optInWhatsApp} onChange={handleCheckboxChange} className="h-3 w-3" /> WhatsApp</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-600">Media/Photo Consent</label>
+            <input type="checkbox" name="mediaConsent" checked={formData.mediaConsent} onChange={handleCheckboxChange} className="h-4 w-4" />
+          </div>
+          
+          {/* EMERGENCY & HEALTH */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">EMERGENCY & HEALTH</h4>
+          <input name="emergencyContact" value={formData.emergencyContact} onChange={handleChange} placeholder="Emergency Contact" className="w-full p-1.5 text-sm border rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} placeholder="Contact Name" className="w-full p-1.5 text-sm border rounded" />
+            <input name="emergencyContactRelationship" value={formData.emergencyContactRelationship} onChange={handleChange} placeholder="Relationship" className="w-full p-1.5 text-sm border rounded" />
+            <input name="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={handleChange} placeholder="Contact Phone" className="w-full p-1.5 text-sm border rounded" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input name="medicalConditions" value={formData.medicalConditions} onChange={handleChange} placeholder="Medical Conditions" className="w-full p-1.5 text-sm border rounded" />
+            <input name="accessibilityNeeds" value={formData.accessibilityNeeds} onChange={handleChange} placeholder="Accessibility Needs" className="w-full p-1.5 text-sm border rounded" />
+          </div>
+          
+          {/* STEWARDSHIP */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">STEWARDSHIP</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input name="titheNumber" value={formData.titheNumber} onChange={handleChange} placeholder="Tithe/Envelope Number" className="w-full p-1.5 text-sm border rounded" />
+            <input name="givingId" value={formData.givingId} onChange={handleChange} placeholder="Giving ID" className="w-full p-1.5 text-sm border rounded" />
+          </div>
+          
+          {/* OTHER */}
+          <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">OTHER</h4>
+          <textarea name="prayerRequests" value={formData.prayerRequests} onChange={handleChange} placeholder="Prayer Requests" rows={2} className="w-full p-1.5 text-sm border rounded" />
+          <input name="notes" value={formData.notes} onChange={handleChange} placeholder="Notes" className="w-full p-1.5 text-sm border rounded" />
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Profile Picture</label>
+            <input type="file" accept="image/*" onChange={handleFileChange} className="w-full p-1.5 text-sm border rounded" />
+          </div>
+          <button type="submit" className="w-full bg-blue-600 text-white p-2 text-sm font-medium rounded hover:bg-blue-700 mt-2">Add Member</button>
         </div>
-
-        {/* Profile Picture */}
-        <div className="border-b pb-4">
-          <h4 className="text-lg font-semibold mb-3 text-blue-800">Profile Picture</h4>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 font-semibold text-lg transition-colors"
-        >
-          Add Church Member
-        </button>
       </form>
     </div>
   );

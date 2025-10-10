@@ -27,7 +27,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRoleState] = useState<UserRole>(UserRole.ADMIN); // Default to ADMIN for demo/review
+  const [userRole, setUserRoleState] = useState<UserRole>(UserRole.VIEWER); // Default to VIEWER for security
   const [loading, setLoading] = useState(true);
 
   const loadUserRole = async (uid: string) => {
@@ -41,19 +41,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Loaded role from Firebase:', role);
         setUserRoleState(role);
       } else {
-        // Create user document with default role if it doesn't exist
-        console.log('Creating user document with default ADMIN role for demo');
+        // Create user document with default VIEWER role (secure default)
+        console.log('Creating new user document with VIEWER role');
         await setDoc(userDocRef, {
           email: user?.email || '',
-          role: UserRole.ADMIN,
+          role: UserRole.VIEWER,
           createdAt: new Date()
         });
-        setUserRoleState(UserRole.ADMIN);
+        setUserRoleState(UserRole.VIEWER);
       }
     } catch (error) {
       console.error('Error loading user role:', error);
-      // Keep the initial ADMIN role on error for demo purposes
-      setUserRoleState(UserRole.ADMIN);
+      // Default to VIEWER role on error for security
+      setUserRoleState(UserRole.VIEWER);
     }
   };
 
