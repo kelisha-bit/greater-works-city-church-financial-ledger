@@ -53,6 +53,13 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
               >
                 Donors
               </button>
+              <button
+                onClick={() => onViewChange('myProfile')}
+                className={`${navItemClasses} ${currentView === 'myProfile' ? activeClasses : inactiveClasses}`}
+                aria-current={currentView === 'myProfile' ? 'page' : undefined}
+              >
+                My Profile
+              </button>
               {(userRole === UserRole.EDITOR || userRole === UserRole.ADMIN) && (
                 <button
                   onClick={() => onViewChange('members')}
@@ -62,13 +69,22 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
                   Members
                 </button>
               )}
-              {userRole === UserRole.ADMIN && (
+              {(userRole === UserRole.ADMIN || userRole === UserRole.TREASURER) && (
                 <button
                   onClick={() => onViewChange('budgets')}
                   className={`${navItemClasses} ${currentView === 'budgets' ? activeClasses : inactiveClasses}`}
                   aria-current={currentView === 'budgets' ? 'page' : undefined}
                 >
                   Budgets
+                </button>
+              )}
+              {userRole === UserRole.ADMIN && (
+                <button
+                  onClick={() => onViewChange('users')}
+                  className={`${navItemClasses} ${currentView === 'users' ? activeClasses : inactiveClasses}`}
+                  aria-current={currentView === 'users' ? 'page' : undefined}
+                >
+                  Users
                 </button>
               )}
             </nav>

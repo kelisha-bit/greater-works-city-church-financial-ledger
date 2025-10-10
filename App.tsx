@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import ErrorBoundary from './components/ErrorBoundary';
+import FirebaseSetupScreen from './components/FirebaseSetupScreen';
 import Header from './components/Header';
 import Summary from './components/Summary';
 import AddTransactionForm from './components/AddTransactionForm';
@@ -17,10 +18,13 @@ import BackupRestore from './components/BackupRestore';
 import MemberProfile from './components/MemberProfile';
 import Dashboard from './components/Dashboard';
 import DonorManagement from './components/DonorManagement';
+import UserManagement from './components/UserManagement';
+import MyProfile from './components/MyProfile';
 import { useTransactions } from './hooks/useTransactions';
 import { useBudgets } from './hooks/useBudgets';
 import { useCategories } from './hooks/useCategories';
 import { useMembers } from './hooks/useMembers';
+import { isConfigured } from './firebase';
 import './src/registerSW';
 
 const MainApp: React.FC = () => {
@@ -41,7 +45,7 @@ const MainApp: React.FC = () => {
   const { expenseCategories, addExpenseCategory } = useCategories();
   const { members, addMember, deleteMember, editMember } = useMembers();
 
-  const [view, setView] = useState<'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'users' | 'myProfile'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -124,6 +128,17 @@ const MainApp: React.FC = () => {
         );
       case 'donors':
         return <DonorManagement transactions={transactions} />;
+      case 'users':
+        return <UserManagement />;
+      case 'myProfile':
+        return (
+          <MyProfile
+            members={members}
+            transactions={transactions}
+            onEditMember={editMember}
+            onBack={() => setView('dashboard')}
+          />
+        );
       case 'memberProfile':
         const selectedMember = members.find(m => m.id === selectedMemberId);
         return selectedMember ? (
@@ -156,6 +171,11 @@ const MainApp: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // Show setup screen if Firebase is not configured
+  if (!isConfigured) {
+    return <FirebaseSetupScreen />;
+  }
+
   return (
     <ErrorBoundary>
       <AuthProvider>

@@ -7,3 +7,82 @@
   outline: 2px solid theme('colors.blue.500');
   outline-offset: 2px;
 }
+
+/* Print styles for Member Profile */
+@media print {
+  /* Hide navigation and buttons */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Optimize page layout */
+  body {
+    background: white !important;
+  }
+
+  /* Remove shadows and optimize colors for print */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure proper page breaks */
+  .space-y-6 > * {
+    page-break-inside: avoid;
+  }
+
+  /* Optimize gradient backgrounds for print */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r {
+    background: #3b82f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Ensure colors print correctly */
+  .bg-white,
+  .bg-blue-50,
+  .bg-green-50,
+  .bg-purple-50,
+  .bg-orange-50,
+  .bg-gray-50 {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Optimize table printing */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  /* Adjust font sizes for print */
+  body {
+    font-size: 12pt;
+  }
+
+  h1 {
+    font-size: 24pt;
+  }
+
+  h2 {
+    font-size: 18pt;
+  }
+
+  h3 {
+    font-size: 14pt;
+  }
+
+  /* Remove unnecessary margins */
+  @page {
+    margin: 1cm;
+  }
+}

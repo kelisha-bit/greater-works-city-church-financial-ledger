@@ -36,11 +36,27 @@ export const useMembers = () => {
     const q = query(membersRef, orderBy('dateJoined', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        dateJoined: doc.data().dateJoined.toDate().toISOString().split('T')[0], // Convert Firestore timestamp to YYYY-MM-DD
-      })) as Member[];
+      const membersData = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const toIso = (ts?: any) => ts?.toDate ? ts.toDate().toISOString().split('T')[0] : (typeof ts === 'string' ? ts : undefined);
+
+        return {
+          id: d.id,
+          ...data,
+          dateJoined: toIso(data.dateJoined)!,
+          birthday: toIso(data.birthday),
+          baptismDate: toIso(data.baptismDate),
+          joinDate: toIso(data.joinDate),
+          membershipClassDate: toIso(data.membershipClassDate),
+          confirmationDate: toIso(data.confirmationDate),
+          communionDate: toIso(data.communionDate),
+          ministries: Array.isArray(data.ministries) ? data.ministries : (data.ministries ? [String(data.ministries)] : []),
+          departments: Array.isArray(data.departments) ? data.departments : (data.departments ? [String(data.departments)] : []),
+          familyLinks: Array.isArray(data.familyLinks) ? data.familyLinks : (data.familyLinks ? [String(data.familyLinks)] : []),
+          childrenNamesAges: Array.isArray(data.childrenNamesAges) ? data.childrenNamesAges : (data.childrenNamesAges ? [String(data.childrenNamesAges)] : []),
+          spiritualGifts: Array.isArray(data.spiritualGifts) ? data.spiritualGifts : (data.spiritualGifts ? [String(data.spiritualGifts)] : []),
+        } as Member;
+      });
       setMembers(membersData);
     }, (error) => {
       console.error("Error fetching members:", error);
@@ -69,13 +85,46 @@ export const useMembers = () => {
   }, [members, user]);
 
   const addMember = useCallback(async (member: Omit<Member, 'id' | 'dateJoined'> & { dateJoined: string }) => {
-    if (!user) return;
+    if (!user) {
+      console.error('No user authenticated. Cannot add member to Firestore.');
+      return;
+    }
 
-    const membersRef = collection(db, 'users', user.uid, 'members');
-    await addDoc(membersRef, {
-      ...member,
-      dateJoined: new Date(member.dateJoined),
-    });
+    try {
+      const membersRef = collection(db, 'users', user.uid, 'members');
+      const toDate = (v?: string) => (v ? new Date(v) : undefined);
+      
+      // Prepare data with proper type conversions
+      const memberData: any = {
+        ...member,
+        dateJoined: new Date(member.dateJoined),
+        birthday: toDate((member as any).birthday),
+        baptismDate: toDate((member as any).baptismDate),
+        joinDate: toDate((member as any).joinDate),
+        membershipClassDate: toDate((member as any).membershipClassDate),
+        confirmationDate: toDate((member as any).confirmationDate),
+        communionDate: toDate((member as any).communionDate),
+        // Ensure arrays are properly handled
+        ministries: Array.isArray((member as any).ministries) ? (member as any).ministries : ((member as any).ministries ? String((member as any).ministries).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+        departments: Array.isArray((member as any).departments) ? (member as any).departments : ((member as any).departments ? String((member as any).departments).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+        familyLinks: Array.isArray((member as any).familyLinks) ? (member as any).familyLinks : ((member as any).familyLinks ? String((member as any).familyLinks).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+        childrenNamesAges: Array.isArray((member as any).childrenNamesAges) ? (member as any).childrenNamesAges : ((member as any).childrenNamesAges ? String((member as any).childrenNamesAges).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+        spiritualGifts: Array.isArray((member as any).spiritualGifts) ? (member as any).spiritualGifts : ((member as any).spiritualGifts ? String((member as any).spiritualGifts).split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+      };
+
+      // Remove undefined values to keep Firestore clean
+      Object.keys(memberData).forEach(key => {
+        if (memberData[key] === undefined) {
+          delete memberData[key];
+        }
+      });
+
+      await addDoc(membersRef, memberData);
+      console.log('Member added successfully');
+    } catch (error) {
+      console.error('Error adding member:', error);
+      throw error;
+    }
   }, [user]);
 
   const deleteMember = useCallback(async (id: string) => {
@@ -89,8 +138,18 @@ export const useMembers = () => {
     if (!user) return;
 
     const memberRef = doc(db, 'users', user.uid, 'members', id);
-    const updatesWithDate = updates.dateJoined ? { ...updates, dateJoined: new Date(updates.dateJoined) } : updates;
-    await updateDoc(memberRef, updatesWithDate);
+    const toDate = (v?: string) => (v ? new Date(v) : undefined);
+    const updatesWithDates = {
+      ...updates,
+      ...(updates.dateJoined ? { dateJoined: toDate(updates.dateJoined) } : {}),
+      ...(updates.birthday ? { birthday: toDate(updates.birthday) } : {}),
+      ...(updates.baptismDate ? { baptismDate: toDate(updates.baptismDate) } : {}),
+      ...(updates.joinDate ? { joinDate: toDate(updates.joinDate) } : {}),
+      ...(updates.ministries ? { ministries: Array.isArray(updates.ministries) ? updates.ministries : String(updates.ministries).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+      ...(updates.departments ? { departments: Array.isArray(updates.departments) ? updates.departments : String(updates.departments).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+      ...(updates.familyLinks ? { familyLinks: Array.isArray(updates.familyLinks) ? updates.familyLinks : String(updates.familyLinks).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+    } as any;
+    await updateDoc(memberRef, updatesWithDates);
   }, [user]);
 
   return {
