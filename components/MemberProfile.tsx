@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Member, Transaction } from '../types';
+import Announcements from './Announcements';
 
 interface MemberProfileProps {
   member: Member;
@@ -29,6 +30,8 @@ const InfoRow: React.FC<{ label: string; value?: string; badge?: boolean }> = ({
 };
 
 const MemberProfile: React.FC<MemberProfileProps> = ({ member, transactions, onBack, onEditMember }) => {
+  const [showAnnouncements, setShowAnnouncements] = useState(true);
+  
   // Print functionality
   const handlePrint = () => {
     window.print();
@@ -89,6 +92,38 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ member, transactions, onB
 
   return (
     <div className="space-y-6">
+      {/* Announcements Section */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <button
+          onClick={() => setShowAnnouncements(!showAnnouncements)}
+          className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 text-left focus:outline-none"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900">Announcements</h2>
+            <svg
+              className={`h-5 w-5 text-gray-500 transform transition-transform ${
+                showAnnouncements ? 'rotate-180' : ''
+              }`}
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+        </button>
+        
+        {showAnnouncements && (
+          <div className="px-6 pb-4">
+            <Announcements memberId={member.id} memberEmail={member.email} />
+          </div>
+        )}
+      </div>
+
       {/* Header with Back Button */}
       <div className="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between print:hidden">
         <button

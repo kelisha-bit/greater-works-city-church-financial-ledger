@@ -59,5 +59,60 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId);
     }
+
+    // Announcements collection
+    match /announcements/{announcementId} {
+      // Allow read if user is authenticated
+      allow read: if isAuthenticated();
+      
+      // Allow create/update/delete only for admins and editors
+      allow create: if isAdmin() || isEditor();
+      allow update: if isAdmin() || isEditor();
+      allow delete: if isAdmin();
+      
+      // Additional validation for announcement data
+      function isValidAnnouncement() {
+        return request.resource.data.keys().hasAll([
+          'title',
+          'message',
+          'audience',
+          'priority',
+          'status'
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 200 &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() > 0 &&
+        request.resource.data.audience in ['all', 'members', 'specific'] &&
+        request.resource.data.priority in ['low', 'medium', 'high'] &&
+        request.resource.data.status in ['draft', 'published', 'archived'];
+      }
+      
+      // Validate announcement data on create and update
+      allow create: if isValidAnnouncement() && 
+                   request.resource.data.createdBy == request.auth.uid &&
+                   request.resource.data.createdAt == request.time;
+                   
+      allow update: if (
+        // Existing data
+        resource.data.createdBy == request.auth.uid || isAdmin()
+      ) && (
+        // Only allow certain fields to be updated
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['title', 'message', 'audience', 'priority', 'status', 'scheduledFor', 'updatedAt', 'updatedBy'])
+      ) && (
+        // Validate the updated data
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 200 &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() > 0 &&
+        request.resource.data.audience in ['all', 'members', 'specific'] &&
+        request.resource.data.priority in ['low', 'medium', 'high'] &&
+        request.resource.data.status in ['draft', 'published', 'archived'] &&
+        request.resource.data.updatedAt == request.time
+      );
+    }
   }
 }

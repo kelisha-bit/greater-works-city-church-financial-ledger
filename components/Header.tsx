@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 
 interface HeaderProps {
-  currentView: 'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors';
-  onViewChange: (view: 'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors') => void;
+  currentView: 'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'announcements' | 'myProfile' | 'users';
+  onViewChange: (view: 'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'announcements' | 'myProfile' | 'users') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
@@ -59,6 +59,13 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
                 aria-current={currentView === 'myProfile' ? 'page' : undefined}
               >
                 My Profile
+              </button>
+              <button
+                onClick={() => onViewChange('announcements')}
+                className={`${navItemClasses} ${currentView === 'announcements' ? activeClasses : inactiveClasses}`}
+                aria-current={currentView === 'announcements' ? 'page' : undefined}
+              >
+                Announcements
               </button>
               {(userRole === UserRole.EDITOR || userRole === UserRole.ADMIN) && (
                 <button

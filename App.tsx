@@ -20,6 +20,7 @@ import Dashboard from './components/Dashboard';
 import DonorManagement from './components/DonorManagement';
 import UserManagement from './components/UserManagement';
 import MyProfile from './components/MyProfile';
+import AnnouncementsPage from './pages/AnnouncementsPage';
 import { useTransactions } from './hooks/useTransactions';
 import { useBudgets } from './hooks/useBudgets';
 import { useCategories } from './hooks/useCategories';
@@ -45,7 +46,7 @@ const MainApp: React.FC = () => {
   const { expenseCategories, addExpenseCategory } = useCategories();
   const { members, addMember, deleteMember, editMember } = useMembers();
 
-  const [view, setView] = useState<'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'users' | 'myProfile'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'users' | 'myProfile' | 'announcements'>('dashboard');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -131,14 +132,9 @@ const MainApp: React.FC = () => {
       case 'users':
         return <UserManagement />;
       case 'myProfile':
-        return (
-          <MyProfile
-            members={members}
-            transactions={transactions}
-            onEditMember={editMember}
-            onBack={() => setView('dashboard')}
-          />
-        );
+        return <MyProfile members={members} transactions={transactions} onBack={() => setView('dashboard')} onEditMember={editMember} />;
+      case 'announcements':
+        return <AnnouncementsPage />;
       case 'memberProfile':
         const selectedMember = members.find(m => m.id === selectedMemberId);
         return selectedMember ? (

@@ -8,6 +8,10 @@ export enum UserRole {
   TREASURER = 'treasurer',
   EDITOR = 'editor',
   VIEWER = 'viewer',
+  PASTOR = 'pastor',
+  DEACON = 'deacon',
+  MEMBER = 'member',
+  GUEST = 'guest'
 }
 
 export interface Transaction {
@@ -98,13 +102,41 @@ export interface Member {
   accessibilityNeeds?: string;
   // Stewardship
   titheNumber?: string; // envelope number
-  givingId?: string;
   // Other
   prayerRequests?: string;
 }
 
 export interface Budget {
-  [month: string]: { // YYYY-MM format
-    [category: string]: number;
-  };
+  category: string;
+  amount: number;
+  month: string; // YYYY-MM format
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  audience: 'all' | 'members' | 'specific';
+  specificRecipients?: string[];
+  priority: 'low' | 'medium' | 'high';
+  date: Date | any; // Firestore Timestamp or Date
+  createdBy: string;
+  createdAt: Date | any; // Firestore Timestamp or Date
+  status: 'draft' | 'published' | 'archived';
+  scheduledFor?: Date | any; // Firestore Timestamp or Date for future publishing
+  updatedAt?: Date | any; // Firestore Timestamp or Date
+  updatedBy?: string;
+  readBy?: string[]; // Array of user IDs who have read the announcement
+  attachments?: Array<{
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+  }>;
+  categories?: string[]; // e.g., ['general', 'events', 'prayer', 'giving']
+  expiresAt?: Date | any; // Optional expiration date
+  allowComments?: boolean;
+  commentsCount?: number;
+  isPinned?: boolean;
+  metadata?: Record<string, any>; // For any additional data
 }
