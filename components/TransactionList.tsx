@@ -3,6 +3,7 @@ import { Transaction, TransactionType } from '../types';
 import { INCOME_CATEGORIES } from '../constants';
 import ImportTransactionsModal from './ImportTransactionsModal';
 import DonorReceipt from './DonorReceipt';
+import Pagination from './Pagination';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -38,7 +39,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onDelet
   const [editForm, setEditForm] = useState<Partial<Transaction>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25); // Reduced default for better performance
+  const [itemsPerPage, setItemsPerPage] = useState(25); // Default items per page
   const [isLoading, setIsLoading] = useState(false);
 
   const formatISO = (d: Date) => d.toISOString().slice(0, 10);
@@ -192,6 +193,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onDelet
     }
   };
 
+  // Get filtered transactions
   const filteredTransactions = useMemo(() => {
     const lowercasedTerm = searchTerm.toLowerCase();
     return transactions.filter((t) => {
@@ -232,10 +234,27 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onDelet
   const endIndex = startIndex + itemsPerPage;
   const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
+  // Get current page transactions
+  const currentTransactions = useMemo(() => {
+    const indexOfLastTransaction = currentPage * itemsPerPage;
+    const indexOfFirstTransaction = indexOfLastTransaction - itemsPerPage;
+    return filteredTransactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
+  }, [filteredTransactions, currentPage, itemsPerPage]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, startDate, endDate, categoryFilter]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll to top of table when page changes
+    // Scroll to top of list when changing pages
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1); // Reset to first page
   };
 
   const printDonorReceipt = (transaction: Transaction) => {

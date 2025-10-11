@@ -1,88 +1,93 @@
-import React, { ReactNode, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-import { Menu } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Menu } from 'react-feather';
 
 interface LayoutProps {
-  children: ReactNode;
-  currentView: string;
-  onViewChange: (view: string) => void;
-  title?: string;
-  description?: string;
+  children: React.ReactNode;
+  currentView: 'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'announcements' | 'myProfile' | 'users';
+  onViewChange: (view: 'dashboard' | 'reports' | 'budgets' | 'transactions' | 'donations' | 'members' | 'memberProfile' | 'donors' | 'announcements' | 'myProfile' | 'users') => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ 
-  children, 
-  currentView,
-  onViewChange,
-  title = 'Dashboard',
-  description = ''
-}) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
   const { user } = useAuth();
-  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if the device is mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+
+  // Close sidebar when changing view on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [currentView, isMobile]);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <Sidebar 
-        currentView={currentView} 
-        onViewChange={onViewChange} 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
+      {/* Sidebar for desktop and mobile */}
+      {user && (
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)}
+          currentView={currentView}
+          onViewChange={onViewChange}
+        />
+      )}
       
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header className="lg:hidden bg-white shadow-sm">
-          <div className="flex items-center justify-between p-4">
-            <button 
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
-              aria-label="Open sidebar"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-semibold text-gray-800">
-              {title}
-            </h1>
-            <div className="w-10"></div> {/* Spacer for flex alignment */}
-          </div>
-        </header>
+      <div className="flex flex-col flex-1 w-full overflow-hidden lg:ml-64">
+        {/* Mobile header with menu button */}
+        {user && (
+          <header className="bg-white shadow-sm z-10">
+            <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-md text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden transition-colors"
+                aria-label="Toggle sidebar menu"
+              >
+                <Menu size={24} />
+              </button>
+              
+              <div className="flex-1 flex justify-center lg:justify-start lg:ml-4">
+                <h1 className="text-xl font-bold text-slate-800">
+                  {currentView.charAt(0).toUpperCase() + currentView.slice(1)}
+                </h1>
+              </div>
+              
+              <div className="flex items-center">
+                <div className="hidden sm:block text-right">
+                  <p className="text-sm text-slate-500">Greater Works City Church</p>
+                </div>
+              </div>
+            </div>
+          </header>
+        )}
         
         {/* Main content area */}
-        <main className="flex-1 overflow-y-auto focus:outline-none p-4 lg:p-8">
-          {/* Page title and description */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            {description && (
-              <p className="mt-1 text-sm text-gray-600">
-                {description}
-              </p>
-            )}
-          </div>
-          
-          {/* Page content */}
-          <div className="bg-white shadow overflow-hidden rounded-lg p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="container mx-auto">
             {children}
           </div>
         </main>
-        
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 py-4">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <div className="text-sm text-gray-500">
-                © {new Date().getFullYear()} Greater Works City Church. All rights reserved.
-              </div>
-              <div className="mt-2 md:mt-0">
-                <p className="text-xs text-gray-500">
-                  {user?.email && `Logged in as ${user.email}`}
-                </p>
-              </div>
-            </div>
-          </div>
-        </footer>
       </div>
     </div>
   );

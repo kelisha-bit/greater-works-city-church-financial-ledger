@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
+import { generateMemberIdentifiers } from '../utils/memberUtils';
 
 interface AddMemberFormProps {
   onAddMember: (member: Omit<Member, 'id' | 'dateJoined'> & { dateJoined: string }) => Promise<void>;
+  existingMembers: Member[];
 }
 
-const AddMemberForm: React.FC<AddMemberFormProps> = ({ onAddMember }) => {
+const AddMemberForm: React.FC<AddMemberFormProps> = ({ onAddMember, existingMembers }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -72,6 +74,16 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onAddMember }) => {
     // Other
     prayerRequests: '',
   });
+
+  // Generate unique identifiers for new member
+  useEffect(() => {
+    const identifiers = generateMemberIdentifiers(existingMembers);
+    setFormData(prev => ({
+      ...prev,
+      titheNumber: identifiers.titheNumber,
+      givingId: identifiers.givingId
+    }));
+  }, [existingMembers]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -397,8 +409,28 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onAddMember }) => {
           {/* STEWARDSHIP */}
           <h4 className="text-sm font-bold text-slate-700 border-b-2 border-blue-500 pb-1 mt-3">STEWARDSHIP</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input name="titheNumber" value={formData.titheNumber} onChange={handleChange} placeholder="Tithe/Envelope Number" className="w-full p-1.5 text-sm border rounded" />
-            <input name="givingId" value={formData.givingId} onChange={handleChange} placeholder="Giving ID" className="w-full p-1.5 text-sm border rounded" />
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Tithe/Envelope Number</label>
+              <input
+                name="titheNumber"
+                value={formData.titheNumber}
+                onChange={handleChange}
+                placeholder="Auto-generated"
+                className="w-full p-1.5 text-sm border rounded bg-gray-50 text-gray-700"
+                readOnly
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Giving ID</label>
+              <input
+                name="givingId"
+                value={formData.givingId}
+                onChange={handleChange}
+                placeholder="Auto-generated"
+                className="w-full p-1.5 text-sm border rounded bg-gray-50 text-gray-700"
+                readOnly
+              />
+            </div>
           </div>
           
           {/* OTHER */}

@@ -311,8 +311,8 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ member, transactions, onB
           <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">💰 Stewardship & Other</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
-              <InfoRow label="Tithe/Envelope Number" value={(member as any).titheNumber} />
-              <InfoRow label="Giving ID" value={(member as any).givingId} />
+              <InfoRow label="Tithe/Envelope Number" value={member.titheNumber} />
+              <InfoRow label="Giving ID" value={member.givingId} />
             </div>
             <div className="space-y-3">
               <InfoRow label="Prayer Requests" value={(member as any).prayerRequests} />

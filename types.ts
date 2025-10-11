@@ -102,6 +102,7 @@ export interface Member {
   accessibilityNeeds?: string;
   // Stewardship
   titheNumber?: string; // envelope number
+  givingId?: string; // unique giving identifier
   // Other
   prayerRequests?: string;
 }
