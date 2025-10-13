@@ -77,10 +77,30 @@
   }
 }
 
-/* Optimize images for mobile */
-img {
-  max-width: 100%;
-  height: auto;
+/* Mobile-specific optimizations */
+@layer utilities {
+  .mobile-full {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Improved touch target spacing for mobile */
+  @media (max-width: 640px) {
+    .sm\:touch-spacing > * + * {
+      margin-top: 1rem;
+    }
+    
+    /* Ensure form inputs have enough space on mobile */
+    input, select, textarea {
+      font-size: 16px !important; /* Prevents iOS zoom on focus */
+    }
+    
+    /* Improve button spacing on mobile */
+    button.min-h-touch {
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+  }
 }
 
 /* Print styles for Member Profile */

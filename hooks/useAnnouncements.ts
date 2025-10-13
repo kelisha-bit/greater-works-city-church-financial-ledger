@@ -205,6 +205,115 @@ export const useAnnouncements = () => {
     return userRole === UserRole.ADMIN || userRole === UserRole.EDITOR;
   };
 
+  // Clear old announcements based on specified criteria
+  const clearOldAnnouncements = async (options: {
+    olderThanDays?: number;
+    status?: 'draft' | 'published' | 'archived';
+    audience?: 'all' | 'members' | 'specific';
+    dryRun?: boolean;
+    archiveInstead?: boolean;
+  }) => {
+    if (userRole !== UserRole.ADMIN) {
+      throw new Error('Only administrators can clear old announcements');
+    }
+
+    if (!user) {
+      throw new Error('User must be logged in to clear announcements');
+    }
+
+    try {
+      setLoading(true);
+      
+      // Set default options
+      const {
+        olderThanDays = 30,
+        status,
+        audience,
+        dryRun = false,
+        archiveInstead = false
+      } = options;
+
+      // Calculate the cutoff date
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+      const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
+
+      // Build the query
+      let announcementsQuery = query(
+        collection(db, 'announcements'),
+        where('createdAt', '<', cutoffTimestamp)
+      );
+
+      // Add status filter if provided
+      if (status) {
+        announcementsQuery = query(
+          announcementsQuery,
+          where('status', '==', status)
+        );
+      }
+
+      // Add audience filter if provided
+      if (audience) {
+        announcementsQuery = query(
+          announcementsQuery,
+          where('audience', '==', audience)
+        );
+      }
+
+      // Execute the query
+      const querySnapshot = await getDocs(announcementsQuery);
+      
+      // Convert to Announcement objects
+      const announcementsToProcess = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date?.toDate ? doc.data().date.toDate() : doc.data().date,
+        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : doc.data().createdAt,
+        scheduledFor: doc.data().scheduledFor?.toDate ? doc.data().scheduledFor.toDate() : doc.data().scheduledFor,
+        updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : doc.data().updatedAt,
+        expiresAt: doc.data().expiresAt?.toDate ? doc.data().expiresAt.toDate() : doc.data().expiresAt,
+      })) as Announcement[];
+
+      // If it's a dry run, just return the results without making changes
+      if (dryRun) {
+        return {
+          deleted: announcementsToProcess.length,
+          announcements: announcementsToProcess
+        };
+      }
+
+      // Process each announcement
+      const processPromises = announcementsToProcess.map(async announcement => {
+        const announcementRef = doc(db, 'announcements', announcement.id);
+        
+        if (archiveInstead) {
+          // Archive the announcement
+          await updateDoc(announcementRef, {
+            status: 'archived',
+            updatedAt: Timestamp.now(),
+            updatedBy: user.uid
+          });
+        } else {
+          // Delete the announcement
+          await deleteDoc(announcementRef);
+        }
+      });
+
+      // Wait for all operations to complete
+      await Promise.all(processPromises);
+
+      return {
+        deleted: announcementsToProcess.length,
+        announcements: announcementsToProcess
+      };
+    } catch (err) {
+      console.error('Error clearing old announcements:', err);
+      throw new Error('Failed to clear old announcements');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     announcements,
     loading,
@@ -217,6 +326,7 @@ export const useAnnouncements = () => {
     hasUnreadAnnouncements,
     getUserAnnouncements,
     canManageAnnouncements,
+    clearOldAnnouncements,
   };
 };
 
