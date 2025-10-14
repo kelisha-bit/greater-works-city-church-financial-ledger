@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Transaction, UserRole } from '../types';
 import { INCOME_CATEGORIES } from '../constants';
 import { useMembers } from '../hooks/useMembers';
@@ -18,6 +18,9 @@ const AddDonationForm: React.FC<AddDonationFormProps> = ({ onAddTransaction }) =
   const [donorName, setDonorName] = useState('');
   const [donorContact, setDonorContact] = useState('');
   const [error, setError] = useState('');
+  const [entryMode, setEntryMode] = useState<'name' | 'number'>('name');
+  const [titheNumber, setTitheNumber] = useState('');
+  const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Check if user has permission to add donations
   if (userRole === UserRole.VIEWER) {
@@ -41,6 +44,41 @@ const AddDonationForm: React.FC<AddDonationFormProps> = ({ onAddTransaction }) =
       </div>
     );
   }
+
+  // Find member by tithe number
+  useEffect(() => {
+    if (entryMode === 'number' && titheNumber) {
+      const foundMember = members.find(m => m.titheNumber === titheNumber);
+      if (foundMember) {
+        setSelectedMember(foundMember);
+        setDonorName(foundMember.name);
+        setDonorContact(foundMember.email || foundMember.phone || '');
+      } else {
+        setSelectedMember(null);
+        setDonorName('');
+        setDonorContact('');
+      }
+    }
+  }, [titheNumber, members, entryMode]);
+
+  // Handle name selection
+  const handleNameSelection = (name: string) => {
+    setDonorName(name);
+    if (name) {
+      const foundMember = members.find(m => m.name === name);
+      if (foundMember) {
+        setSelectedMember(foundMember);
+        setDonorContact(foundMember.email || foundMember.phone || '');
+        if (foundMember.titheNumber) {
+          setTitheNumber(foundMember.titheNumber);
+        }
+      }
+    } else {
+      setSelectedMember(null);
+      setDonorContact('');
+      setTitheNumber('');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,12 +106,39 @@ const AddDonationForm: React.FC<AddDonationFormProps> = ({ onAddTransaction }) =
     setCategory(INCOME_CATEGORIES[0]);
     setDonorName('');
     setDonorContact('');
+    setTitheNumber('');
+    setSelectedMember(null);
+  };
+
+  const toggleEntryMode = () => {
+    setEntryMode(entryMode === 'name' ? 'number' : 'name');
+    setDonorName('');
+    setDonorContact('');
+    setTitheNumber('');
+    setSelectedMember(null);
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-xl font-bold mb-4">Record Individual Donation</h2>
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+      
+      <div className="mb-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-700">Donor Entry Method</span>
+          <button 
+            type="button" 
+            onClick={toggleEntryMode}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Switch to {entryMode === 'name' ? 'Tithe Number' : 'Name'} Entry
+          </button>
+        </div>
+        <div className="mt-2 bg-blue-50 p-2 rounded-md text-sm text-blue-800">
+          Currently using: <strong>{entryMode === 'name' ? 'Name Selection' : 'Tithe/Envelope Number'}</strong>
+        </div>
+      </div>
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label>
@@ -119,20 +184,49 @@ const AddDonationForm: React.FC<AddDonationFormProps> = ({ onAddTransaction }) =
             {INCOME_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
-        <div>
-          <label htmlFor="donorName" className="block text-sm font-medium text-slate-700">Donor Name</label>
-          <select
-            id="donorName"
-            value={donorName}
-            onChange={(e) => setDonorName(e.target.value)}
-            className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          >
-            <option value="">Select a member</option>
-            {members.map(member => (
-              <option key={member.id} value={member.name}>{member.name}</option>
-            ))}
-          </select>
-        </div>
+        
+        {entryMode === 'name' ? (
+          <div>
+            <label htmlFor="donorName" className="block text-sm font-medium text-slate-700">Donor Name</label>
+            <select
+              id="donorName"
+              value={donorName}
+              onChange={(e) => handleNameSelection(e.target.value)}
+              className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="">Select a member</option>
+              {members.map(member => (
+                <option key={member.id} value={member.name}>{member.name}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="titheNumber" className="block text-sm font-medium text-slate-700">Tithe/Envelope Number</label>
+            <input
+              type="text"
+              id="titheNumber"
+              value={titheNumber}
+              onChange={(e) => setTitheNumber(e.target.value)}
+              placeholder="Enter member tithe/envelope number"
+              className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
+            {selectedMember ? (
+              <div className="mt-2 p-2 bg-green-50 rounded-md">
+                <p className="text-sm text-green-700">
+                  <strong>Member found:</strong> {selectedMember.name}
+                </p>
+              </div>
+            ) : titheNumber ? (
+              <div className="mt-2 p-2 bg-red-50 rounded-md">
+                <p className="text-sm text-red-700">
+                  <strong>No member found</strong> with this tithe/envelope number
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
+        
         <div>
           <label htmlFor="donorContact" className="block text-sm font-medium text-slate-700">Donor Contact</label>
           <input

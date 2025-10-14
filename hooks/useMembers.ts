@@ -12,6 +12,15 @@ import {
   query,
   orderBy
 } from 'firebase/firestore';
+import { 
+  normalizeEmail, 
+  prepareMemberEmailData, 
+  validateEmailUniqueness,
+  findMemberByEmail,
+  isEmailTaken,
+  getMembersWithEmails,
+  findDuplicateEmails
+} from '../utils/memberUtils';
 
 const STORAGE_KEY = 'churchLedgerMembers';
 
@@ -91,12 +100,21 @@ export const useMembers = () => {
     }
 
     try {
+      // Validate email uniqueness before adding
+      if (member.email) {
+        const emailValidation = validateEmailUniqueness(members, member.email);
+        if (!emailValidation.isValid) {
+          throw new Error(emailValidation.message || 'Email validation failed');
+        }
+      }
+
       const membersRef = collection(db, 'users', user.uid, 'members');
       const toDate = (v?: string) => (v ? new Date(v) : undefined);
       
-      // Prepare data with proper type conversions
+      // Prepare data with proper type conversions and email normalization
+      const preparedMember = prepareMemberEmailData(member);
       const memberData: any = {
-        ...member,
+        ...preparedMember,
         dateJoined: new Date(member.dateJoined),
         birthday: toDate((member as any).birthday),
         baptismDate: toDate((member as any).baptismDate),
@@ -125,7 +143,7 @@ export const useMembers = () => {
       console.error('Error adding member:', error);
       throw error;
     }
-  }, [user]);
+  }, [user, members]);
 
   const deleteMember = useCallback(async (id: string) => {
     if (!user) return;
@@ -137,25 +155,70 @@ export const useMembers = () => {
   const editMember = useCallback(async (id: string, updates: Partial<Omit<Member, 'id'>>) => {
     if (!user) return;
 
-    const memberRef = doc(db, 'users', user.uid, 'members', id);
-    const toDate = (v?: string) => (v ? new Date(v) : undefined);
-    const updatesWithDates = {
-      ...updates,
-      ...(updates.dateJoined ? { dateJoined: toDate(updates.dateJoined) } : {}),
-      ...(updates.birthday ? { birthday: toDate(updates.birthday) } : {}),
-      ...(updates.baptismDate ? { baptismDate: toDate(updates.baptismDate) } : {}),
-      ...(updates.joinDate ? { joinDate: toDate(updates.joinDate) } : {}),
-      ...(updates.ministries ? { ministries: Array.isArray(updates.ministries) ? updates.ministries : String(updates.ministries).split(',').map(s => s.trim()).filter(Boolean) } : {}),
-      ...(updates.departments ? { departments: Array.isArray(updates.departments) ? updates.departments : String(updates.departments).split(',').map(s => s.trim()).filter(Boolean) } : {}),
-      ...(updates.familyLinks ? { familyLinks: Array.isArray(updates.familyLinks) ? updates.familyLinks : String(updates.familyLinks).split(',').map(s => s.trim()).filter(Boolean) } : {}),
-    } as any;
-    await updateDoc(memberRef, updatesWithDates);
-  }, [user]);
+    try {
+      // Validate email uniqueness before updating (excluding current member)
+      if (updates.email !== undefined) {
+        const emailValidation = validateEmailUniqueness(members, updates.email, id);
+        if (!emailValidation.isValid) {
+          throw new Error(emailValidation.message || 'Email validation failed');
+        }
+      }
+
+      const memberRef = doc(db, 'users', user.uid, 'members', id);
+      const toDate = (v?: string) => (v ? new Date(v) : undefined);
+      
+      // Prepare updates with email normalization
+      const preparedUpdates = prepareMemberEmailData(updates);
+      
+      const updatesWithDates = {
+        ...preparedUpdates,
+        ...(updates.dateJoined ? { dateJoined: toDate(updates.dateJoined) } : {}),
+        ...(updates.birthday ? { birthday: toDate(updates.birthday) } : {}),
+        ...(updates.baptismDate ? { baptismDate: toDate(updates.baptismDate) } : {}),
+        ...(updates.joinDate ? { joinDate: toDate(updates.joinDate) } : {}),
+        ...(updates.ministries ? { ministries: Array.isArray(updates.ministries) ? updates.ministries : String(updates.ministries).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+        ...(updates.departments ? { departments: Array.isArray(updates.departments) ? updates.departments : String(updates.departments).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+        ...(updates.familyLinks ? { familyLinks: Array.isArray(updates.familyLinks) ? updates.familyLinks : String(updates.familyLinks).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+      } as any;
+      
+      await updateDoc(memberRef, updatesWithDates);
+    } catch (error) {
+      console.error('Error updating member:', error);
+      throw error;
+    }
+  }, [user, members]);
+
+  // Email-based utility functions
+  const findByEmail = useCallback((email: string) => {
+    return findMemberByEmail(members, email);
+  }, [members]);
+
+  const checkEmailTaken = useCallback((email: string, excludeMemberId?: string) => {
+    return isEmailTaken(members, email, excludeMemberId);
+  }, [members]);
+
+  const getMembersWithEmail = useCallback(() => {
+    return getMembersWithEmails(members);
+  }, [members]);
+
+  const findEmailDuplicates = useCallback(() => {
+    return findDuplicateEmails(members);
+  }, [members]);
+
+  const validateEmail = useCallback((email: string, excludeMemberId?: string) => {
+    return validateEmailUniqueness(members, email, excludeMemberId);
+  }, [members]);
 
   return {
     members,
     addMember,
     deleteMember,
     editMember,
+    // Email-based functions
+    findByEmail,
+    checkEmailTaken,
+    getMembersWithEmail,
+    findEmailDuplicates,
+    validateEmail,
   };
 };

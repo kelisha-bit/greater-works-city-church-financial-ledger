@@ -132,7 +132,7 @@ const MainApp: React.FC = () => {
       case 'users':
         return <UserManagement />;
       case 'myProfile':
-        return <MyProfile members={members} transactions={transactions} onBack={() => setView('dashboard')} onEditMember={editMember} />;
+        return <MyProfile members={members} transactions={transactions} onBack={() => setView('dashboard')} onEditMember={editMember} onUpdateMember={editMember} />;
       case 'announcements':
         return <AnnouncementsPage />;
       case 'memberProfile':

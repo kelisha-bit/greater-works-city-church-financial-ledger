@@ -60,6 +60,21 @@ if (isConfigured) {
   try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    
+    // Configure auth settings for email verification
+    if (auth) {
+      auth.useDeviceLanguage(); // Use the device's language for emails
+      
+      // Set custom settings for actions like password reset and email verification
+      const actionCodeSettings = {
+        url: window.location.origin + '/profile',
+        handleCodeInApp: false
+      };
+      
+      // Store actionCodeSettings in localStorage for use in components
+      localStorage.setItem('firebaseActionCodeSettings', JSON.stringify(actionCodeSettings));
+    }
+    
     db = getFirestore(app);
     console.log('✅ Firebase initialized successfully');
   } catch (error) {

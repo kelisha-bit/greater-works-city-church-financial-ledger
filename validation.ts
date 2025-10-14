@@ -44,8 +44,11 @@ export const memberSchema = z.object({
   email: z.string()
     .email('Invalid email format')
     .max(100, 'Email must be less than 100 characters')
+    .toLowerCase()
+    .trim()
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .transform(val => val === '' ? undefined : val),
 
   phone: z.string()
     .max(20, 'Phone number must be less than 20 characters')
@@ -71,6 +74,49 @@ export const memberSchema = z.object({
     .optional()
     .or(z.literal(''))
 });
+
+// Enhanced member validation schema with email uniqueness check
+export const createMemberValidationSchema = (existingMembers: any[] = []) => {
+  return memberSchema.refine(
+    (data) => {
+      if (!data.email) return true; // Allow empty emails
+      
+      // Check for email uniqueness (case-insensitive)
+      const normalizedEmail = data.email.toLowerCase().trim();
+      const emailExists = existingMembers.some(
+        member => member.email?.toLowerCase().trim() === normalizedEmail
+      );
+      
+      return !emailExists;
+    },
+    {
+      message: 'Email address is already associated with another member',
+      path: ['email']
+    }
+  );
+};
+
+// Enhanced member update validation schema with email uniqueness check
+export const createUpdateMemberValidationSchema = (existingMembers: any[] = [], currentMemberId?: string) => {
+  return memberSchema.refine(
+    (data) => {
+      if (!data.email) return true; // Allow empty emails
+      
+      // Check for email uniqueness (case-insensitive), excluding current member
+      const normalizedEmail = data.email.toLowerCase().trim();
+      const emailExists = existingMembers.some(
+        member => member.id !== currentMemberId && 
+                 member.email?.toLowerCase().trim() === normalizedEmail
+      );
+      
+      return !emailExists;
+    },
+    {
+      message: 'Email address is already associated with another member',
+      path: ['email']
+    }
+  );
+};
 
 // Budget validation schema
 export const budgetSchema = z.object({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Member } from '../types';
 import Pagination from './Pagination';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface MemberListProps {
   members: Member[];
@@ -40,6 +41,9 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
   const [filteredMembers, setFilteredMembers] = useState<Member[]>(members);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Calculate metrics
   const totalMembers = members.length;
@@ -187,6 +191,32 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
       baptized: ''
     });
     setSearchQuery('');
+  };
+
+  const handleDeleteClick = (member: Member) => {
+    setMemberToDelete(member);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!memberToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDeleteMember(memberToDelete.id);
+      setShowDeleteConfirmation(false);
+      setMemberToDelete(null);
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      // You could add a toast notification here
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirmation(false);
+    setMemberToDelete(null);
   };
 
   const activeFilterCount = useMemo(() => {
@@ -485,7 +515,7 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
                   <div className="flex space-x-2">
                     <button onClick={() => onViewProfile(member.id)} className="text-green-600 hover:underline">View Profile</button>
                     <button onClick={() => handleEdit(member)} className="text-blue-600 hover:underline">Edit</button>
-                    <button onClick={() => onDeleteMember(member.id)} className="text-red-600 hover:underline">Delete</button>
+                    <button onClick={() => handleDeleteClick(member)} className="text-red-600 hover:underline">Delete</button>
                   </div>
                 </div>
               </div>
@@ -504,6 +534,19 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
         itemsPerPage={itemsPerPage}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirmation}
+        title="Delete Member"
+        message={`Are you sure you want to delete ${memberToDelete?.firstName} ${memberToDelete?.lastName}? This action cannot be undone and will permanently remove all member data.`}
+        confirmText="Delete Member"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onClose={handleDeleteCancel}
+        isLoading={isDeleting}
+        type="danger"
       />
     </div>
   );
