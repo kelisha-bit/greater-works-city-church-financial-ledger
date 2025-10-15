@@ -13,6 +13,19 @@ service cloud.firestore {
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
+    
+    // Helper function to check if the authenticated user's email matches the profile email
+    function isEmailMatch(userId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(userId)) && 
+             'email' in get(/databases/$(database)/documents/users/$(userId)).data && 
+             request.auth.token.email == get(/databases/$(database)/documents/users/$(userId)).data.email;
+    }
+    
+    // Helper function to check if user is either the owner or has matching email
+    function isOwnerOrEmailMatch(userId) {
+      return isOwner(userId) || isEmailMatch(userId);
+    }
 
     function hasRole(role) {
       return isAuthenticated() && getUserData().role == role;
@@ -29,6 +42,10 @@ service cloud.firestore {
     function isEditor() {
       return hasRole('editor');
     }
+    
+    function isViewer() {
+      return hasRole('viewer');
+    }
 
     function isAdminOrTreasurer() {
       return isAdmin() || isTreasurer();
@@ -38,12 +55,48 @@ service cloud.firestore {
       return isAdmin() || isTreasurer() || isEditor();
     }
 
-    // User profiles
+    // User profiles with role-based permissions and email authentication
     match /users/{userId} {
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow read: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if false; // Never allow deletion
+      // Allow create only for admins or if it's the user's own initial profile
+      // Ensure email field is set to the authenticated user's email when creating own profile
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        (request.auth.uid == userId && request.resource.data.email == request.auth.token.email)
+      );
+      
+      // Role-based read permissions:
+      // - Admins and treasurers can read all user profiles
+      // - Editors can read all user profiles
+      // - Viewers can only read their own profile (by UID or email match)
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isTreasurer() || 
+        isEditor() || 
+        (isViewer() && isOwnerOrEmailMatch(userId))
+      );
+      
+      // Role-based update permissions:
+      // - Admins can update any profile and all fields
+      // - Treasurers can update any profile except admin profiles
+      // - Editors can update viewer profiles only
+      // - All users can update their own profile (by UID or email match) except the role field
+      // - Email field can only be updated to match the authenticated user's email
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isTreasurer() && !('role' in resource.data && resource.data.role == 'admin')) ||
+        (isEditor() && 'role' in resource.data && resource.data.role == 'viewer') ||
+        (isOwnerOrEmailMatch(userId) && 
+          request.resource.data.diff(resource.data).affectedKeys().hasNone(['role']) &&
+          (!('email' in request.resource.data) || request.resource.data.email == request.auth.token.email))
+      );
+      
+      // Only admins can delete user profiles, if needed
+      allow delete: if isAuthenticated() && isAdmin();
+      
+      // Validate that email field matches the authenticated user's email when creating/updating own profile
+      function isValidEmailField() {
+        return request.resource.data.email == request.auth.token.email;
+      }
     }
 
     // User's private data (transactions, members, etc.)

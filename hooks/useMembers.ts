@@ -12,15 +12,7 @@ import {
   query,
   orderBy
 } from 'firebase/firestore';
-import { 
-  normalizeEmail, 
-  prepareMemberEmailData, 
-  validateEmailUniqueness,
-  findMemberByEmail,
-  isEmailTaken,
-  getMembersWithEmails,
-  findDuplicateEmails
-} from '../utils/memberUtils';
+import * as memberUtils from '../utils/memberUtils';
 
 const STORAGE_KEY = 'churchLedgerMembers';
 
@@ -102,7 +94,7 @@ export const useMembers = () => {
     try {
       // Validate email uniqueness before adding
       if (member.email) {
-        const emailValidation = validateEmailUniqueness(members, member.email);
+        const emailValidation = memberUtils.validateEmailUniqueness(members, member.email);
         if (!emailValidation.isValid) {
           throw new Error(emailValidation.message || 'Email validation failed');
         }
@@ -112,7 +104,7 @@ export const useMembers = () => {
       const toDate = (v?: string) => (v ? new Date(v) : undefined);
       
       // Prepare data with proper type conversions and email normalization
-      const preparedMember = prepareMemberEmailData(member);
+      const preparedMember = memberUtils.prepareMemberEmailData(member);
       const memberData: any = {
         ...preparedMember,
         dateJoined: new Date(member.dateJoined),
@@ -158,7 +150,7 @@ export const useMembers = () => {
     try {
       // Validate email uniqueness before updating (excluding current member)
       if (updates.email !== undefined) {
-        const emailValidation = validateEmailUniqueness(members, updates.email, id);
+        const emailValidation = memberUtils.validateEmailUniqueness(members, updates.email, id);
         if (!emailValidation.isValid) {
           throw new Error(emailValidation.message || 'Email validation failed');
         }
@@ -168,7 +160,7 @@ export const useMembers = () => {
       const toDate = (v?: string) => (v ? new Date(v) : undefined);
       
       // Prepare updates with email normalization
-      const preparedUpdates = prepareMemberEmailData(updates);
+      const preparedUpdates = memberUtils.prepareMemberEmailData(updates);
       
       const updatesWithDates = {
         ...preparedUpdates,
@@ -190,23 +182,23 @@ export const useMembers = () => {
 
   // Email-based utility functions
   const findByEmail = useCallback((email: string) => {
-    return findMemberByEmail(members, email);
+    return memberUtils.findMemberByEmail(members, email);
   }, [members]);
 
   const checkEmailTaken = useCallback((email: string, excludeMemberId?: string) => {
-    return isEmailTaken(members, email, excludeMemberId);
+    return memberUtils.isEmailTaken(members, email, excludeMemberId);
   }, [members]);
 
   const getMembersWithEmail = useCallback(() => {
-    return getMembersWithEmails(members);
+    return memberUtils.getMembersWithEmails(members);
   }, [members]);
 
   const findEmailDuplicates = useCallback(() => {
-    return findDuplicateEmails(members);
+    return memberUtils.findDuplicateEmails(members);
   }, [members]);
 
   const validateEmail = useCallback((email: string, excludeMemberId?: string) => {
-    return validateEmailUniqueness(members, email, excludeMemberId);
+    return memberUtils.validateEmailUniqueness(members, email, excludeMemberId);
   }, [members]);
 
   return {

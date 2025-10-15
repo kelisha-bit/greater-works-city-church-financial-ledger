@@ -6,7 +6,7 @@ import { updateDoc, doc, serverTimestamp, collection, addDoc } from 'firebase/fi
 import { db } from '../firebase';
 import { auth } from '../firebase';
 import { memberSchema, validateForm } from '../validation';
-import { findMemberByEmail, normalizeEmail, suggestMemberMatches } from '../utils/memberUtils';
+import * as memberUtils from '../utils/memberUtils';
 import { sendVerificationEmail, sendPasswordReset, isEmailVerified, refreshUserStatus } from '../utils/emailUtils';
 
 interface ActivityLog {
@@ -65,7 +65,7 @@ const MyProfile: React.FC<MyProfileProps> = ({
         }
         
         // Use enhanced email matching function
-        const member = findMemberByEmail(members, user.email);
+        const member = memberUtils.findMemberByEmail(members, user.email);
         setMyMember(member || null);
         
         if (member) {
@@ -75,7 +75,7 @@ const MyProfile: React.FC<MyProfileProps> = ({
           await loadActivityLogs(member.id);
         } else {
           // If no exact match found, suggest potential matches
-          const suggestions = suggestMemberMatches(members, user.email);
+          const suggestions = memberUtils.suggestMemberMatches(members, user.email);
           setSuggestedMatches(suggestions);
           if (suggestions.length > 0) {
             setShowSuggestions(true);
