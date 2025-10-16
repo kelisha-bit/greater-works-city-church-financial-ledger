@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, initializeFirestore } from 'firebase/firestore';
 
 // Extract and validate required environment variables
 const {
@@ -48,19 +48,23 @@ let auth: Auth | null = null;
 let db: Firestore | null = null;
 
 if (isConfigured) {
-  const firebaseConfig = {
-    apiKey: VITE_FIREBASE_API_KEY!,
-    authDomain: VITE_FIREBASE_AUTH_DOMAIN!,
-    projectId: VITE_FIREBASE_PROJECT_ID!,
-    storageBucket: VITE_FIREBASE_STORAGE_BUCKET!,
-    messagingSenderId: VITE_FIREBASE_MESSAGING_SENDER_ID!,
-    appId: VITE_FIREBASE_APP_ID!,
-  };
+  app = initializeApp({
+    apiKey: VITE_FIREBASE_API_KEY,
+    authDomain: VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: VITE_FIREBASE_PROJECT_ID,
+    storageBucket: VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: VITE_FIREBASE_APP_ID,
+  });
 
   try {
-    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     
+    // Initialize Firestore with ignoreUndefinedProperties
+    db = initializeFirestore(app, {
+      ignoreUndefinedProperties: true,
+    });
+
     // Configure auth settings for email verification
     if (auth) {
       auth.useDeviceLanguage(); // Use the device's language for emails
@@ -75,10 +79,10 @@ if (isConfigured) {
       localStorage.setItem('firebaseActionCodeSettings', JSON.stringify(actionCodeSettings));
     }
     
-    db = getFirestore(app);
     console.log('✅ Firebase initialized successfully');
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
+    throw error; // Re-throw to prevent silent failures
   }
 }
 

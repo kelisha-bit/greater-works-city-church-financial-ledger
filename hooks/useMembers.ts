@@ -145,9 +145,15 @@ export const useMembers = () => {
   }, [user]);
 
   const editMember = useCallback(async (id: string, updates: Partial<Omit<Member, 'id'>>) => {
-    if (!user) return;
+    if (!user) {
+      console.error('No user authenticated');
+      return;
+    }
 
     try {
+      // Debug log the incoming updates
+      console.log('Raw updates received:', JSON.parse(JSON.stringify(updates)));
+
       // Validate email uniqueness before updating (excluding current member)
       if (updates.email !== undefined) {
         const emailValidation = memberUtils.validateEmailUniqueness(members, updates.email, id);
@@ -157,25 +163,90 @@ export const useMembers = () => {
       }
 
       const memberRef = doc(db, 'users', user.uid, 'members', id);
-      const toDate = (v?: string) => (v ? new Date(v) : undefined);
       
-      // Prepare updates with email normalization
-      const preparedUpdates = memberUtils.prepareMemberEmailData(updates);
+      // Create a clean updates object that will only contain defined values
+      const cleanUpdates: Record<string, any> = {};
       
-      const updatesWithDates = {
-        ...preparedUpdates,
-        ...(updates.dateJoined ? { dateJoined: toDate(updates.dateJoined) } : {}),
-        ...(updates.birthday ? { birthday: toDate(updates.birthday) } : {}),
-        ...(updates.baptismDate ? { baptismDate: toDate(updates.baptismDate) } : {}),
-        ...(updates.joinDate ? { joinDate: toDate(updates.joinDate) } : {}),
-        ...(updates.ministries ? { ministries: Array.isArray(updates.ministries) ? updates.ministries : String(updates.ministries).split(',').map(s => s.trim()).filter(Boolean) } : {}),
-        ...(updates.departments ? { departments: Array.isArray(updates.departments) ? updates.departments : String(updates.departments).split(',').map(s => s.trim()).filter(Boolean) } : {}),
-        ...(updates.familyLinks ? { familyLinks: Array.isArray(updates.familyLinks) ? updates.familyLinks : String(updates.familyLinks).split(',').map(s => s.trim()).filter(Boolean) } : {}),
-      } as any;
+      // Helper function to safely process fields
+      const processField = (key: string, value: any) => {
+        // Skip undefined values entirely
+        if (value === undefined) return;
+        
+        // Convert empty strings to null for Firestore
+        if (value === '') {
+          cleanUpdates[key] = null;
+          return;
+        }
+        
+        // Handle date fields
+        const dateFields = ['birthday', 'baptismDate', 'joinDate', 'dateJoined'];
+        if (dateFields.includes(key) && value) {
+          cleanUpdates[key] = value ? new Date(value) : null;
+          return;
+        }
+        
+        // Handle array fields
+        const arrayFields = ['ministries', 'departments', 'familyLinks'];
+        if (arrayFields.includes(key)) {
+          if (Array.isArray(value)) {
+            cleanUpdates[key] = value.filter(Boolean);
+          } else if (typeof value === 'string') {
+            cleanUpdates[key] = value.split(',').map((s: string) => s.trim()).filter(Boolean);
+          } else {
+            cleanUpdates[key] = [];
+          }
+          return;
+        }
+        
+        // For all other fields, just assign the value
+        cleanUpdates[key] = value;
+      };
+
+      // Process all fields from updates
+      Object.entries(updates).forEach(([key, value]) => {
+        // Special handling for when a date is cleared (becomes empty string or null)
+        if ((key === 'birthday' || key === 'baptismDate' || key === 'joinDate' || key === 'dateJoined') 
+            && (value === '' || value === null)) {
+          cleanUpdates[key] = null;
+        } else {
+          processField(key, value);
+        }
+      });
+
+      // Apply email normalization if email is being updated
+      if (updates.email !== undefined) {
+        const normalizedEmail = updates.email.toLowerCase().trim();
+        if (normalizedEmail) {
+          cleanUpdates.email = normalizedEmail;
+        } else {
+          cleanUpdates.email = null;
+        }
+      }
+
+      console.log('Processed updates for Firestore:', cleanUpdates);
       
-      await updateDoc(memberRef, updatesWithDates);
+      // Double-check for any remaining undefined values
+      Object.keys(cleanUpdates).forEach(key => {
+        if (cleanUpdates[key] === undefined) {
+          console.warn(`Found undefined value for ${key}, removing from update`);
+          delete cleanUpdates[key];
+        }
+      });
+
+      // Only proceed if we have updates
+      if (Object.keys(cleanUpdates).length > 0) {
+        console.log('Sending to Firestore:', cleanUpdates);
+        await updateDoc(memberRef, cleanUpdates);
+        console.log('Update successful');
+      } else {
+        console.warn('No valid updates to save');
+      }
     } catch (error) {
-      console.error('Error updating member:', error);
+      console.error('Error in editMember:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }, [user, members]);
