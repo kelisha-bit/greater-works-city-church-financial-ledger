@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Member } from '../types';
 import Pagination from './Pagination';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -242,7 +243,12 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <motion.div 
+      className="bg-white p-6 rounded-lg shadow-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       <h3 className="text-lg font-bold mb-4">Member List</h3>
       
       {/* Metric Cards */}
@@ -298,7 +304,6 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
               <button 
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 onClick={() => setSearchQuery('')}
-                aria-label="Clear search"
               >
                 <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -306,228 +311,178 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
               </button>
             )}
           </div>
-          
-          <button 
-            className="flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+          <button
             onClick={() => setShowFilters(!showFilters)}
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-                {activeFilterCount}
-              </span>
-            )}
+            Filters {activeFilterCount > 0 && <span className="ml-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">{activeFilterCount}</span>}
           </button>
-          
-          {activeFilterCount > 0 && (
-            <button 
-              className="flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-              onClick={resetFilters}
-            >
-              Clear All
-            </button>
-          )}
         </div>
-        
+
         {showFilters && (
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Membership Status</label>
-                <select
-                  name="membershipStatus"
-                  value={filters.membershipStatus}
-                  onChange={handleFilterChange}
-                  className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select
-                  name="role"
-                  value={filters.role}
-                  onChange={handleFilterChange}
-                  className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Roles</option>
-                  {uniqueRoles.map(role => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Join Date Range</label>
-                <div className="flex space-x-2">
-                  <input
-                    type="date"
-                    name="joinDateRange.start"
-                    value={filters.joinDateRange.start}
-                    onChange={handleFilterChange}
-                    className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="From"
-                  />
-                  <input
-                    type="date"
-                    name="joinDateRange.end"
-                    value={filters.joinDateRange.end}
-                    onChange={handleFilterChange}
-                    className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="To"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Baptized</label>
-                <select
-                  name="baptized"
-                  value={filters.baptized}
-                  onChange={handleFilterChange}
-                  className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Members</option>
-                  <option value="yes">Baptized</option>
-                  <option value="no">Not Baptized</option>
-                </select>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-md border border-gray-200">
+            <div>
+              <label htmlFor="membershipStatus" className="block text-sm font-medium text-gray-700">Status</label>
+              <select
+                id="membershipStatus"
+                name="membershipStatus"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.membershipStatus}
+                onChange={handleFilterChange}
+              >
+                <option value="">All</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="New">New</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
+              <select
+                id="role"
+                name="role"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.role}
+                onChange={handleFilterChange}
+              >
+                <option value="">All</option>
+                {uniqueRoles.map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="joinDateRange.start" className="block text-sm font-medium text-gray-700">Joined From</label>
+              <input
+                type="date"
+                id="joinDateRange.start"
+                name="joinDateRange.start"
+                className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.joinDateRange.start}
+                onChange={handleFilterChange}
+              />
+            </div>
+            <div>
+              <label htmlFor="joinDateRange.end" className="block text-sm font-medium text-gray-700">Joined To</label>
+              <input
+                type="date"
+                id="joinDateRange.end"
+                name="joinDateRange.end"
+                className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.joinDateRange.end}
+                onChange={handleFilterChange}
+              />
+            </div>
+            <div>
+              <label htmlFor="baptized" className="block text-sm font-medium text-gray-700">Baptized</label>
+              <select
+                id="baptized"
+                name="baptized"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.baptized}
+                onChange={handleFilterChange}
+              >
+                <option value="">All</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={resetFilters}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reset Filters
+              </button>
             </div>
           </div>
         )}
-        
-        {/* Results summary */}
-        <div className="text-sm text-gray-600">
-          Showing {filteredMembers.length} of {members.length} members
-          {activeFilterCount > 0 && ' (filtered)'}
-        </div>
-      </div>
-      
-      {/* Empty state */}
-      {filteredMembers.length === 0 && (
-        <div className="text-center py-8 border rounded-md bg-gray-50">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No members found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Try adjusting your search or filter criteria
-          </p>
-          <div className="mt-6">
-            <button
-              onClick={resetFilters}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Clear filters
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Member list */}
-      <div className="space-y-4">
-        {currentMembers.map((member) => (
-          <div key={member.id} className="border p-4 rounded">
-            {editing?.id === member.id ? (
-              <div className="space-y-2">
-                <input name="name" value={editing.data.name} onChange={handleChange} placeholder="Name" required className="w-full p-1 border rounded" />
-                <input name="email" value={editing.data.email || ''} onChange={handleChange} placeholder="Email" className="w-full p-1 border rounded" />
-                <input name="phone" value={editing.data.phone || ''} onChange={handleChange} placeholder="Phone" className="w-full p-1 border rounded" />
-                <input name="address" value={editing.data.address || ''} onChange={handleChange} placeholder="Address Line 1" className="w-full p-1 border rounded" />
-                <input name="address2" value={(editing.data as any).address2 || ''} onChange={handleChange} placeholder="Address Line 2" className="w-full p-1 border rounded" />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <input name="city" value={(editing.data as any).city || ''} onChange={handleChange} placeholder="City" className="w-full p-1 border rounded" />
-                  <input name="region" value={(editing.data as any).region || ''} onChange={handleChange} placeholder="Region" className="w-full p-1 border rounded" />
-                  <input name="postalCode" value={(editing.data as any).postalCode || ''} onChange={handleChange} placeholder="Postal/GhanaPost GPS" className="w-full p-1 border rounded" />
-                </div>
-                <input name="dateJoined" value={editing.data.dateJoined.split('T')[0]} onChange={handleChange} type="date" required className="w-full p-1 border rounded" />
-                <select name="role" value={editing.data.role || ''} onChange={handleChange} className="w-full p-1 border rounded">
-                  <option value="">Select Role</option>
-                  <option value="Member">Member</option>
-                  <option value="Elder">Elder</option>
-                  <option value="Pastor">Pastor</option>
-                  <option value="Deacon">Deacon</option>
-                </select>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs w-24">Birthday</label>
-                    <input name="birthday" value={(editing.data as any).birthday || ''} onChange={handleChange} type="date" className="w-full p-1 border rounded" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs w-24">Marital</label>
-                    <select name="maritalStatus" value={(editing.data as any).maritalStatus || ''} onChange={handleChange} className="w-full p-1 border rounded">
-                      <option value="">Select</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs w-24">Membership</label>
-                    <select name="membershipStatus" value={(editing.data as any).membershipStatus || ''} onChange={handleChange} className="w-full p-1 border rounded">
-                      <option value="">Select</option>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs w-24">Join Date</label>
-                    <input name="joinDate" value={(editing.data as any).joinDate || ''} onChange={handleChange} type="date" className="w-full p-1 border rounded" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs w-24">Baptism</label>
-                  <input name="baptismDate" value={(editing.data as any).baptismDate || ''} onChange={handleChange} type="date" className="w-full p-1 border rounded" />
-                </div>
-                <input name="householdName" value={(editing.data as any).householdName || ''} onChange={handleChange} placeholder="Household/Family Name" className="w-full p-1 border rounded" />
-                <input name="familyLinks" value={Array.isArray((editing.data as any).familyLinks) ? (editing.data as any).familyLinks.join(', ') : ((editing.data as any).familyLinks || '')} onChange={handleChange} placeholder="Family Links (comma-separated)" className="w-full p-1 border rounded" />
-                <input name="ministries" value={Array.isArray((editing.data as any).ministries) ? (editing.data as any).ministries.join(', ') : ((editing.data as any).ministries || '')} onChange={handleChange} placeholder="Ministries (comma-separated)" className="w-full p-1 border rounded" />
-                <input name="departments" value={Array.isArray((editing.data as any).departments) ? (editing.data as any).departments.join(', ') : ((editing.data as any).departments || '')} onChange={handleChange} placeholder="Departments (comma-separated)" className="w-full p-1 border rounded" />
-                <input name="emergencyContact" value={editing.data.emergencyContact || ''} onChange={handleChange} placeholder="Emergency Contact" className="w-full p-1 border rounded" />
-                <input name="notes" value={(editing.data as any).notes || ''} onChange={handleChange} placeholder="Notes" className="w-full p-1 border rounded" />
-                <input type="file" accept="image/*" onChange={handleFileChange} className="w-full p-1 border rounded" />
-                <div className="flex space-x-2">
-                  <button onClick={handleSave} className="bg-green-600 text-white px-3 py-1 rounded">Save</button>
-                  <button onClick={handleCancel} className="bg-gray-600 text-white px-3 py-1 rounded">Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="flex justify-between items-start">
-                  <div>
-                    {member.profilePicture && <img src={member.profilePicture} alt="Profile" className="w-16 h-16 rounded-full mb-2" />}
-                    <h4 className="font-bold">{member.name}</h4>
-                    <p className="text-sm text-gray-600">Joined: {new Date(member.dateJoined).toLocaleDateString()}</p>
-                    {member.email && <p className="text-sm">{member.email}</p>}
-                    {member.phone && <p className="text-sm">{member.phone}</p>}
-                    {member.role && <p className="text-sm font-medium">{member.role}</p>}
-                  </div>
-                  <div className="flex space-x-2">
-                    <button onClick={() => onViewProfile(member.id)} className="text-green-600 hover:underline">View Profile</button>
-                    <button onClick={() => handleEdit(member)} className="text-blue-600 hover:underline">Edit</button>
-                    <button onClick={() => handleDeleteClick(member)} className="text-red-600 hover:underline">Delete</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-        {members.length === 0 && (
-          <p className="text-center text-gray-500">No members yet. Add your first member above.</p>
-        )}
       </div>
 
-      {/* Pagination Controls */}
+      {filteredMembers.length === 0 && searchQuery.length > 0 ? (
+        <p className="text-center text-gray-500 py-8">No members found matching your search criteria.</p>
+      ) : filteredMembers.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">No members added yet. Use the form on the left to add new members.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              <AnimatePresence>
+                {currentMembers.map((member) => (
+                  <motion.tr 
+                    key={member.id} 
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 50 }}
+                    whileHover={{ scale: 1.02, backgroundColor: "#f3f4f6" }} // Subtle hover effect
+                    transition={{ duration: 0.3 }}
+                    className="hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          {member.profilePicture ? (
+                            <img className="h-10 w-10 rounded-full object-cover" src={member.profilePicture} alt="" />
+                          ) : (
+                            <span className="h-10 w-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-800 font-medium">{member.name.charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{member.email || 'N/A'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{member.phone || 'N/A'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        member.membershipStatus === 'Active' ? 'bg-green-100 text-green-800' :
+                        member.membershipStatus === 'Inactive' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {member.membershipStatus}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {member.role || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(member.dateJoined).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => onViewProfile(member.id)} className="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                      <button onClick={() => handleEdit(member)} className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                      <button onClick={() => handleDeleteClick(member)} className="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <Pagination
         currentPage={currentPage}
         totalItems={filteredMembers.length}
@@ -536,19 +491,128 @@ const MemberList: React.FC<MemberListProps> = ({ members, onDeleteMember, onEdit
         onItemsPerPageChange={handleItemsPerPageChange}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={showDeleteConfirmation}
-        title="Delete Member"
-        message={`Are you sure you want to delete ${memberToDelete?.firstName} ${memberToDelete?.lastName}? This action cannot be undone and will permanently remove all member data.`}
-        confirmText="Delete Member"
-        cancelText="Cancel"
-        onConfirm={handleDeleteConfirm}
-        onClose={handleDeleteCancel}
-        isLoading={isDeleting}
-        type="danger"
-      />
-    </div>
+      {editing && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50">
+          <div className="relative p-8 border w-full max-w-md shadow-lg rounded-md bg-white mx-4">
+            <h3 className="text-lg font-bold mb-4">Edit Member</h3>
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              <div className="mb-4">
+                <label htmlFor="editName" className="block text-sm font-medium text-gray-700">Name</label>
+                <input
+                  type="text"
+                  id="editName"
+                  name="name"
+                  value={editing.data.name}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editEmail" className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  id="editEmail"
+                  name="email"
+                  value={editing.data.email || ''}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editPhone" className="block text-sm font-medium text-gray-700">Phone</label>
+                <input
+                  type="tel"
+                  id="editPhone"
+                  name="phone"
+                  value={editing.data.phone || ''}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editAddress" className="block text-sm font-medium text-gray-700">Address</label>
+                <input
+                  type="text"
+                  id="editAddress"
+                  name="address"
+                  value={editing.data.address || ''}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editMembershipStatus" className="block text-sm font-medium text-gray-700">Membership Status</label>
+                <select
+                  id="editMembershipStatus"
+                  name="membershipStatus"
+                  value={editing.data.membershipStatus}
+                  onChange={handleChange}
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="New">New</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editRole" className="block text-sm font-medium text-gray-700">Role</label>
+                <input
+                  type="text"
+                  id="editRole"
+                  name="role"
+                  value={editing.data.role || ''}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="editProfilePicture" className="block text-sm font-medium text-gray-700">Profile Picture</label>
+                {editing.data.profilePicture && (
+                  <div className="mt-2 mb-4">
+                    <img src={editing.data.profilePicture} alt="Profile" className="h-20 w-20 rounded-full object-cover" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="editProfilePicture"
+                  name="profilePicture"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirmation && memberToDelete && (
+        <ConfirmationDialog
+          isOpen={showDeleteConfirmation}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Member"
+          message={`Are you sure you want to delete ${memberToDelete.name}? This action cannot be undone.`}
+          confirmButtonText="Delete"
+          isConfirming={isDeleting}
+        />
+      )}
+    </motion.div>
   );
 };
 

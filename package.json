@@ -14,7 +14,9 @@
     "check:firebase": "node check-firebase-config.js"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "firebase": "^12.3.0",
+    "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.545.0",

@@ -8,6 +8,7 @@ import { auth } from '../firebase';
 import { memberSchema, validateForm } from '../validation';
 import * as memberUtils from '../utils/memberUtils';
 import { sendVerificationEmail, sendPasswordReset, isEmailVerified, refreshUserStatus } from '../utils/emailUtils';
+import SmsSettingsCard from './SmsSettingsCard';
 
 interface ActivityLog {
   id: string;
@@ -938,6 +939,9 @@ const MyProfile: React.FC<MyProfileProps> = ({
         </div>
       </div>
       
+      {/* SMS Settings Section */}
+      <SmsSettingsCard />
+
       {/* Recent Activity Section */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">

@@ -97,6 +97,7 @@ const AddDonationForm: React.FC<AddDonationFormProps> = ({ onAddTransaction }) =
       category,
       ...(donorName && { donorName }),
       ...(donorContact && { donorContact }),
+      ...(selectedMember?.id && { donorMemberId: selectedMember.id })
     });
 
     // Reset form

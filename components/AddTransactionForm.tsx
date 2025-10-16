@@ -117,7 +117,8 @@ const AddTransactionForm: React.FC<AddTransactionFormProps> = ({ onAddTransactio
         category: validation.data!.category,
         ...(validation.data!.type === TransactionType.INCOME && {
           donorName: validation.data!.donorName,
-          donorContact: validation.data!.donorContact
+          donorContact: validation.data!.donorContact,
+          donorMemberId: validation.data!.selectedMemberId || undefined
         })
       };
 

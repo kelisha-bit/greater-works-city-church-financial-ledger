@@ -24,6 +24,7 @@ export interface Transaction {
   receipts?: Receipt[];
   donorName?: string; // For tracking individual donations
   donorContact?: string; // Optional contact info for donors
+  donorMemberId?: string; // Member ID for reliable donor linking
 }
 
 export interface Receipt {

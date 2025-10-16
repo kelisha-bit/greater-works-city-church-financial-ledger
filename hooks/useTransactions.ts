@@ -12,8 +12,11 @@ import {
   query,
   orderBy,
   where,
-  getDocs
+  getDocs,
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
+import { formatE164 } from '../utils/phoneUtils';
 
 const STORAGE_KEY_PREFIX = 'transactions_';
 
@@ -78,26 +81,76 @@ export const useTransactions = () => {
     return unsubscribe;
   }, [user]);
 
+  const enqueueSmsForTransaction = useCallback(async (transactionId: string, transaction: Omit<Transaction, 'id' | 'date'> & { date: string }) => {
+    try {
+      if (!user) return;
+      if (transaction.type !== TransactionType.INCOME) return;
+
+      // Only send if linked to a member with SMS opt-in
+      if (!transaction.donorMemberId) return;
+      const memberRef = doc(db, 'users', user.uid, 'members', transaction.donorMemberId);
+      const memberSnap = await getDoc(memberRef);
+      if (!memberSnap.exists()) return;
+      const m = memberSnap.data() as any;
+      const optInSMS = !!m.optInSMS;
+      if (!optInSMS) return;
+      const phoneRaw: string = m.phone || transaction.donorContact || '';
+      const country: string | undefined = m.country;
+      const to = formatE164(phoneRaw, country);
+      if (!to) return; // Invalid phone
+
+      const smsQueueRef = collection(db, 'users', user.uid, 'smsQueue');
+      await addDoc(smsQueueRef, {
+        userId: user.uid,
+        transactionId,
+        memberId: transaction.donorMemberId,
+        to,
+        donorName: transaction.donorName || m.name,
+        amount: transaction.amount,
+        date: transaction.date,
+        category: transaction.category,
+        status: 'queued',
+        attempts: 0,
+        optInSMS,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      } as any);
+    } catch (e) {
+      console.error('Failed to enqueue SMS receipt', e);
+    }
+  }, [user]);
+
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id' | 'date'> & { date: string }) => {
     if (!user) return;
 
     const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-    await addDoc(transactionsRef, {
+    const docRef = await addDoc(transactionsRef, {
       ...transaction,
       date: new Date(transaction.date),
     });
+    await enqueueSmsForTransaction(docRef.id, transaction);
   }, [user]);
 
   const addMultipleTransactions = useCallback(async (newTransactions: Omit<Transaction, 'id'>[]) => {
     if (!user) return;
 
     const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-    const promises = newTransactions.map(t => addDoc(transactionsRef, {
-      ...t,
-      date: new Date(t.date),
-    }));
+    const promises = newTransactions.map(async (t) => {
+      const docRef = await addDoc(transactionsRef, {
+        ...t,
+        date: new Date(t.date),
+      });
+      await enqueueSmsForTransaction(docRef.id, t as any);
+    });
     await Promise.all(promises);
   }, [user]);
+
+  const resendSmsReceipt = useCallback(async (transactionId: string) => {
+    if (!user) return;
+    const tx = transactions.find(t => t.id === transactionId);
+    if (!tx) return;
+    await enqueueSmsForTransaction(transactionId, tx);
+  }, [user, transactions]);
 
   const deleteTransaction = useCallback(async (id: string) => {
     if (!user) return;
@@ -163,6 +216,7 @@ export const useTransactions = () => {
     addMultipleTransactions,
     deleteTransaction,
     editTransaction,
+    resendSmsReceipt,
     totalIncome,
     totalExpenses,
     balance,
